@@ -46,6 +46,8 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
 .tile .blob{position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;
   background:color-mix(in srgb,var(--accent) 10%,transparent);}
 .tile.bingo .blob{background:color-mix(in srgb,var(--accent2) 14%,transparent);}
+.tile.trivia .play{background:linear-gradient(180deg,#7c5cff,#5a3fd6);color:#fff;}
+.tile.trivia .blob{background:color-mix(in srgb,#7c5cff 14%,transparent);}
 
 /* leaderboard */
 .lb{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;border:1px solid var(--line);}
@@ -100,6 +102,13 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
       <p>Classic numbers, emoji, or icebreaker bingo. First to complete the pattern wins.</p>
       <span class="play">Play Bingo →</span>
     </a>
+    <a class="tile trivia" href="https://psiao.github.io/ls-trivia/">
+      <div class="blob"></div>
+      <div class="ico">🧠</div>
+      <h3>Trivia</h3>
+      <p>Live quiz across 7 categories. Answer fast — the quicker you're right, the more points.</p>
+      <span class="play">Play Trivia →</span>
+    </a>
   </div>
 
   <div class="lb">
@@ -117,6 +126,7 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
       <button class="pill on" data-game="all">All games</button>
       <button class="pill" data-game="skwibble">🎨 Skwibble</button>
       <button class="pill" data-game="bingo">🎱 Bingo</button>
+      <button class="pill" data-game="trivia">🧠 Trivia</button>
     </div>
     <div class="rows" id="rows"><div class="empty"><span class="spin"></span> Loading scores…</div></div>
   </div>
