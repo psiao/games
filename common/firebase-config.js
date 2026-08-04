@@ -1,3 +1,4 @@
+import "./nav.js";
 // ---------------------------------------------------------------------------
 // firebase-config.js
 // Filled in with the "LS Engagement Games" project's web config.
