@@ -6,7 +6,7 @@
 //
 // >>> PASTE YOUR logo.dev PUBLISHABLE TOKEN BELOW (get one free at logo.dev) <<<
 // ===========================================================================
-export const LOGODEV_TOKEN = "pk_YOUR_LOGODEV_PUBLISHABLE_TOKEN";
+export const LOGODEV_TOKEN = "pk_YCYSOoGWSHCIMcDHbn9IFA";
 
 // Build the logo image URL for a domain (edit here if you ever switch providers).
 export function logoUrl(domain) {
