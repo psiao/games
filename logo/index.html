@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LS Guess the Logo</title>
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body>
 
@@ -80,20 +80,15 @@
         <div class="logo-viewport"><img id="logo-img" alt="logo" /></div>
       </div>
       <div class="stage-info" id="stage-info"></div>
-
-      <div class="answer-row" id="answer-row" style="display:none">
-        <input id="answer-input" placeholder="Type the brand name…" autocomplete="off" />
-        <button id="answer-send" class="btn-primary">Guess</button>
-      </div>
-
       <p class="status-line" id="status-line"></p>
       <div class="host-answer" id="host-answer" style="display:none"></div>
 
       <div id="mini-board" class="scoreboard" style="display:none"></div>
 
-      <div id="host-dash" class="host-dash" style="display:none">
-        <div class="dash-head"><span>Live guesses</span><span class="count" id="dash-count"></span></div>
-        <div class="dash-list" id="dash-list"></div>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="answer-row" id="answer-row" style="display:none">
+        <input id="answer-input" placeholder="Type your guess…" autocomplete="off" />
+        <button id="answer-send" class="btn-primary">Guess</button>
       </div>
 
       <div id="host-controls" class="host-controls" style="display:none">
@@ -133,6 +128,6 @@
     </div>
   </div>
 
-  <script type="module" src="logo.js?v=1"></script>
+  <script type="module" src="logo.js?v=2"></script>
 </body>
 </html>

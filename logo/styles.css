@@ -89,3 +89,10 @@ button{font-family:inherit;cursor:pointer}
 .stars span{cursor:pointer;transition:.1s}.stars span.on{color:#f6b93b}
 .fb-thanks{text-align:center;font-size:18px;font-weight:800;padding:20px 0}
 textarea{min-height:80px;resize:vertical;margin-bottom:12px}
+
+/* ---- shared guess chat (Skwibble-style) ---- */
+.chat-log{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 auto 10px;max-width:460px;height:150px;overflow-y:auto;text-align:left;display:flex;flex-direction:column;gap:5px}
+.cmsg{font-size:13px;line-height:1.35;word-break:break-word}
+.cmsg .cwho{font-weight:800;color:var(--brand-accent)}
+.cmsg.sys{color:var(--muted);font-style:italic;text-align:center;font-size:12px}
+.cmsg.win{background:color-mix(in srgb,var(--ok) 12%,white);border-radius:8px;padding:3px 8px;font-weight:700}

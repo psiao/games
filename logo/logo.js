@@ -21,9 +21,9 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;
 const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 // stage config (spec): points 10/5/2/1, timing 10/8/8/5s, zoom scale per stage
-const STAGE_POINTS = [10, 5, 2, 1];
+const STAGE_POINTS = [100, 60, 30, 10];
 const STAGE_SECS = [10, 8, 8, 5];
-const STAGE_SCALE = [5, 2.6, 1.7, 1];
+const STAGE_SCALE = [14, 7, 3, 1];
 
 // ---- sound ----------------------------------------------------------------
 const Sound = (() => {
@@ -47,6 +47,7 @@ let ME, ROOM, IS_HOST = false, meta = null, players = {}, listeners = [];
 let hostTimer = null, resolving = false, finalizing = false;
 let LOGOS = null, CATEGORIES = null, logoUrl = null, contentLoaded = false; // host-only
 let lastLogoId = "", lastStage = 0, soundState = "";
+let chat = {};
 
 // ---- auth -----------------------------------------------------------------
 onAuthStateChanged(auth, (u) => { if (u) { ME = u.uid; offerRejoin(); } });
@@ -117,6 +118,7 @@ function attachListeners(code) {
   detach();
   const m = ref(db, `logo/${code}/meta`); onValue(m, s => { meta = s.val(); if (meta) { IS_HOST = meta.hostUid === ME; onMeta(); } }); listeners.push(m);
   const p = ref(db, `logo/${code}/players`); onValue(p, s => { players = s.val() || {}; onPlayers(); }); listeners.push(p);
+  const c = ref(db, `logo/${code}/chat`); onValue(c, s => { chat = s.val() || {}; renderChat(); if (IS_HOST) checkChat(); }); listeners.push(c);
 }
 function detach() { listeners.forEach(r => off(r)); listeners = []; stopHostTimer(); }
 function stopHostTimer() { if (hostTimer) { clearInterval(hostTimer); hostTimer = null; } }
@@ -144,8 +146,6 @@ function onMeta() {
 function onPlayers() {
   if (!meta) return;
   if (meta.state === "lobby") renderLobbyPlayers();
-  if ((meta.state === "playing" || meta.state === "revealed") && IS_HOST) renderHostDash();
-  if (IS_HOST && meta.state === "playing") checkAnswers();
 }
 
 const lobbyLabel = () => { const ct = meta.category === "mixed" ? "Mixed categories" : meta.category; return `${ct} · ${meta.count} logos`; };
@@ -182,7 +182,7 @@ function renderGame() {
   else cd.style.display = "none";
   // host vs player controls
   $("host-controls").style.display = IS_HOST ? "flex" : "none";
-  $("host-dash").style.display = IS_HOST ? "block" : "none";
+  renderChat();
   $("answer-row").style.display = (!IS_HOST && meta.state === "playing") ? "flex" : "none";
   // host answer helper
   $("host-answer").style.display = IS_HOST ? "block" : "none";
@@ -201,18 +201,6 @@ function renderGame() {
   // host buttons
   if (IS_HOST) { $("btn-zoom").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = revealed ? "inline-block" : "none"; }
 }
-function renderHostDash() {
-  const list = $("dash-list"); if (!list) return;
-  const lg = meta.currentLogo;
-  const rows = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid);
-  const guessed = rows.filter(([, p]) => p.answer && lg && p.answer.id === lg.id).length;
-  $("dash-count").textContent = `${guessed}/${rows.length} guessing`;
-  list.innerHTML = rows.map(([uid, p]) => {
-    const a = p.answer && lg && p.answer.id === lg.id ? p.answer : null;
-    const isWin = meta.winner && meta.winner.uid === uid;
-    return `<div class="dash-row"><span class="dot ${p.connected ? "" : "off"}"></span><span class="dr-name">${esc(p.name)}</span><span class="dr-score">${p.score || 0}</span><span class="dr-tag">${isWin ? "🏆" : (a ? "✍️" : "…")}</span></div>`;
-  }).join("") || `<div class="dash-empty">No players yet.</div>`;
-}
 function renderScoreboard(el, big) {
   const rows = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid).map(([, p]) => p).sort((a, b) => (b.score || 0) - (a.score || 0));
   const medals = ["🥇", "🥈", "🥉"];
@@ -222,13 +210,25 @@ function renderScoreboard(el, big) {
 // ---- player: submit a guess -----------------------------------------------
 $("answer-send").addEventListener("click", submitGuess);
 $("answer-input").addEventListener("keydown", (e) => { if (e.key === "Enter") submitGuess(); });
+function renderChat() {
+  const log = $("chat-log"); if (!log) return;
+  const entries = Object.values(chat || {}).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const wUid = meta && meta.winner ? meta.winner.uid : null;
+  const wId = meta && meta.state === "revealed" && meta.currentLogo ? meta.currentLogo.id : null;
+  log.innerHTML = entries.map(e => {
+    if (e.system) return `<div class="cmsg sys">${esc(e.text)}</div>`;
+    const win = wUid && e.uid === wUid && e.id === wId;
+    return `<div class="cmsg${win ? " win" : ""}"><span class="cwho">${esc(e.name)}:</span> ${esc(e.text)}${win ? " \u2705" : ""}</div>`;
+  }).join("") || `<div class="cmsg sys">Guesses show up here — first correct wins the round.</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+
 function submitGuess() {
   if (IS_HOST || !meta || meta.state !== "playing" || !meta.currentLogo) return;
   const text = ($("answer-input").value || "").trim(); if (!text) return;
   Sound.tap();
-  update(ref(db, `logo/${ROOM}/players/${ME}`), { answer: { id: meta.currentLogo.id, text, at: Date.now() } });
+  push(ref(db, `logo/${ROOM}/chat`), { uid: ME, name: (players[ME] && players[ME].name) || "?", text, id: meta.currentLogo.id, ts: Date.now() });
   $("answer-input").value = "";
-  $("status-line").textContent = "Guess sent — keep going if it's wrong!";
 }
 
 // ---- host: flow -----------------------------------------------------------
@@ -237,11 +237,11 @@ $("btn-start").addEventListener("click", async () => {
   const nonHost = Object.entries(players).filter(([uid, p]) => p.connected && uid !== meta.hostUid).length;
   if (nonHost < 1) { alert("Need at least 1 player (besides the host) to start."); return; }
   if (!(await loadContent())) return;
-  finalizing = false; await drawNext(true);
+  finalizing = false; try { await remove(ref(db, `logo/${ROOM}/chat`)); } catch (e) {} await drawNext(true);
 });
 $("btn-zoom").addEventListener("click", () => { if (IS_HOST) advanceStage(true); });
 $("btn-next").addEventListener("click", () => { if (IS_HOST) nextRound(); });
-$("btn-again").addEventListener("click", async () => { if (!IS_HOST) return; if (!(await loadContent())) return; finalizing = false; await update(ref(db, `logo/${ROOM}/meta`), { qIndex: -1 }); await drawNext(true); });
+$("btn-again").addEventListener("click", async () => { if (!IS_HOST) return; if (!(await loadContent())) return; finalizing = false; try { await remove(ref(db, `logo/${ROOM}/chat`)); } catch (e) {} await update(ref(db, `logo/${ROOM}/meta`), { qIndex: -1 }); await drawNext(true); });
 
 function usedList() { const u = meta && meta.usedIds; return Array.isArray(u) ? u.slice() : (u ? Object.values(u) : []); }
 async function drawNext(first) {
@@ -254,14 +254,13 @@ async function drawNext(first) {
   used.push(id);
   const full = lookupLogo(id);
   const qIndex = first ? 0 : (meta.qIndex || 0) + 1;
-  const clear = {}; Object.keys(players).forEach(uid => { clear[`logo/${ROOM}/players/${uid}/answer`] = null; });
-  if (Object.keys(clear).length) await update(ref(db), clear);
   const now = Date.now();
   await update(ref(db, `logo/${ROOM}/meta`), {
     state: "playing", qIndex, usedIds: used, winner: null, reveal: false, revealAnswer: null,
     stage: 1, stageEndsAt: now + STAGE_SECS[0] * 1000,
     currentLogo: { id, url: logoUrl(full.domain), category: full.cat || full.category },
   });
+  try { await push(ref(db, `logo/${ROOM}/chat`), { system: true, text: `\u2014 Round ${qIndex + 1} \u2014`, ts: Date.now() }); } catch (e) {}
 }
 function startHostTimer() { if (hostTimer) return; hostTimer = setInterval(() => {
   if (!IS_HOST || !meta || meta.state !== "playing") return;
@@ -275,13 +274,13 @@ async function advanceStage(manual) {
   const now = Date.now();
   await update(ref(db, `logo/${ROOM}/meta`), { stage: s + 1, stageEndsAt: now + STAGE_SECS[s] * 1000 });
 }
-function checkAnswers() {
+function checkChat() {
   if (!IS_HOST || resolving || !meta || meta.state !== "playing" || !meta.currentLogo) return;
   const full = lookupLogo(meta.currentLogo.id); if (!full) return;
-  const correct = Object.entries(players)
-    .filter(([uid, p]) => p && uid !== meta.hostUid && p.answer && p.answer.id === meta.currentLogo.id && isCorrect(p.answer.text, full))
-    .sort((a, b) => (a[1].answer.at || 0) - (b[1].answer.at || 0));
-  if (correct.length) { const [uid, p] = correct[0]; winRound(uid, p); }
+  const hits = Object.values(chat || {})
+    .filter(e => e && !e.system && e.uid && e.uid !== meta.hostUid && e.id === meta.currentLogo.id && isCorrect(e.text, full))
+    .sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (hits.length) { const e = hits[0]; const p = players[e.uid] || { name: e.name, score: 0 }; winRound(e.uid, p); }
 }
 async function winRound(uid, p) {
   if (resolving) return; resolving = true; stopHostTimer();
