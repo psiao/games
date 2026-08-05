@@ -50,6 +50,8 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
 .tile.trivia .blob{background:color-mix(in srgb,#7c5cff 14%,transparent);}
 .tile.logo-game .play{background:linear-gradient(180deg,#12b5a6,#0e8a7f);color:#fff;}
 .tile.logo-game .blob{background:color-mix(in srgb,#12b5a6 14%,transparent);}
+.tile.grader .play{background:linear-gradient(180deg,#e5484d,#c13a3e);color:#fff;}
+.tile.grader .blob{background:color-mix(in srgb,#e5484d 14%,transparent);}
 
 /* leaderboard */
 .lb{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;border:1px solid var(--line);}
@@ -118,6 +120,13 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
       <p>A brand logo zooms out stage by stage — the earlier you name it, the more points.</p>
       <span class="play">Play Guess the Logo →</span>
     </a>
+    <a class="tile grader" href="grader/">
+      <div class="blob"></div>
+      <div class="ico">🎓</div>
+      <h3>School Grader</h3>
+      <p>Climb Grade 1 → 5 across school subjects. Are you smarter than a 5th grader?</p>
+      <span class="play">Play School Grader →</span>
+    </a>
   </div>
 
   <div class="lb">
@@ -137,6 +146,7 @@ html,body{margin:0;min-height:100%;font-family:var(--font);color:var(--ink);
       <button class="pill" data-game="bingo">🎱 Bingo</button>
       <button class="pill" data-game="trivia">🧠 Trivia</button>
       <button class="pill" data-game="logos">🔎 Logo</button>
+      <button class="pill" data-game="grader">🎓 Grader</button>
     </div>
     <div class="rows" id="rows"><div class="empty"><span class="spin"></span> Loading scores…</div></div>
   </div>
