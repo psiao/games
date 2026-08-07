@@ -9,6 +9,7 @@
 import { auth, db } from "../common/firebase-config.js";
 import { EID_RE } from "../common/eid.js";
 import { addToLeaderboard } from "../common/leaderboard.js";
+import { Music } from "../common/music.js";
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
@@ -65,6 +66,12 @@ function poolForLevel(level, category) {
   const cats = (category && category !== "mixed") ? [category] : CATEGORIES;
   const ids = [];
   cats.forEach((cat) => { const arr = (TRIVIA[cat] && TRIVIA[cat][level]) || []; arr.forEach((_, i) => ids.push(cat + "|" + level + "|" + i)); });
+  return ids;
+}
+function poolForCategoryWide(category) {
+  const cats = (category && category !== "mixed") ? [category] : CATEGORIES;
+  const ids = [];
+  cats.forEach((cat) => { for (let lv = 1; lv <= 5; lv++) { const arr = (TRIVIA[cat] && TRIVIA[cat][lv]) || []; arr.forEach((_, i) => ids.push(cat + "|" + lv + "|" + i)); } });
   return ids;
 }
 function lookupQ(qid) { const [cat, lvl, idx] = qid.split("|"); return (TRIVIA[cat] && TRIVIA[cat][lvl] && TRIVIA[cat][lvl][Number(idx)]) ? { ...TRIVIA[cat][lvl][Number(idx)], cat, qid } : null; }
@@ -137,6 +144,7 @@ function onMeta() {
     renderGame();
   }
   if (IS_HOST && (meta.state === "playing")) { startHostTimer(); } else { stopHostTimer(); }
+  if (meta.state === "playing" || meta.state === "reveal") Music.start(); else Music.stop();
 }
 function onPlayers() { if (meta && meta.state === "lobby") renderLobbyPlayers(); if (meta && (meta.state === "playing" || meta.state === "reveal") && IS_HOST) renderHostDash(); if (IS_HOST && meta && meta.state === "playing") checkAllAnswered(); }
 
@@ -196,7 +204,7 @@ function renderGame() {
   // reveal scoreboard (compact)
   if (meta.state === "reveal") { $("mini-board").style.display = "block"; renderScoreboard($("mini-board"), false); } else $("mini-board").style.display = "none";
   // host buttons
-  if (IS_HOST) { $("btn-reveal").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = meta.state === "reveal" ? "inline-block" : "none"; }
+  if (IS_HOST) { $("btn-reveal").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = meta.state === "reveal" ? "inline-block" : "none"; $("btn-next").textContent = ((meta.qIndex || 0) + 1 >= meta.qCount) ? "See results \u2192" : "Next question"; }
 }
 function renderHostDash() {
   const list = $("dash-list"); if (!list) return;
@@ -245,7 +253,12 @@ async function drawNext(first) {
   const pool = poolForLevel(level, category);
   let used = usedList();
   let avail = pool.filter((id) => !used.includes(id));
-  if (avail.length === 0) { used = []; avail = pool.slice(); } // pool exhausted -> reset (no repeats until then)
+  if (avail.length === 0) {
+    // selected level exhausted -> borrow unused questions from other levels of the same category before ever repeating
+    const wide = poolForCategoryWide(category);
+    avail = wide.filter((id) => !used.includes(id));
+    if (avail.length === 0) { used = []; avail = pool.slice(); } // whole category exhausted -> reset
+  }
   const qid = avail[Math.floor(Math.random() * avail.length)];
   used.push(qid);
   const full = lookupQ(qid);
@@ -290,10 +303,10 @@ async function advance() {
 }
 async function finalize() {
   if (finalizing) return; finalizing = true;
+  await update(ref(db, `trivia/${ROOM}/meta`), { state: "done" });
   const scorers = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid);
   const top = Math.max(0, ...scorers.map(([, p]) => p.score || 0));
-  for (const [, p] of scorers) { if (!p.eid) continue; await addToLeaderboard(p.eid, p.name, "trivia", p.score || 0, top > 0 && (p.score || 0) === top); }
-  await update(ref(db, `trivia/${ROOM}/meta`), { state: "done" });
+  for (const [, p] of scorers) { if (!p.eid) continue; try { await addToLeaderboard(p.eid, p.name, "trivia", p.score || 0, top > 0 && (p.score || 0) === top); } catch (e) {} }
 }
 
 // ---- feedback -------------------------------------------------------------
@@ -314,6 +327,8 @@ $("fb-send").addEventListener("click", async () => {
 // ---- misc -----------------------------------------------------------------
 $("btn-copy").addEventListener("click", async () => { const url = `${location.origin}${location.pathname}?room=${ROOM}`; try { await navigator.clipboard.writeText(url); $("btn-copy").textContent = "Copied!"; } catch { prompt("Invite link:", url); } setTimeout(() => ($("btn-copy").textContent = "Copy invite link"), 1500); });
 $("btn-mute").addEventListener("click", () => { $("btn-mute").textContent = Sound.toggle() ? "🔇" : "🔊"; });
+$("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 $("btn-mute").textContent = Sound.isMuted() ? "🔇" : "🔊";
 $("btn-home").addEventListener("click", () => { location.href = "../"; }); $("btn-leave").addEventListener("click", () => { location.href = "../"; });
 async function leave() { if (ROOM && ME) { try { await update(ref(db, `trivia/${ROOM}/players/${ME}`), { connected: false }); } catch {} } detach(); ROOM = null; IS_HOST = false; meta = null; players = {}; myAnswer = null; lastQid = ""; show("screen-join"); }
