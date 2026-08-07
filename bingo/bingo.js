@@ -12,6 +12,7 @@
 import { auth, db } from "../common/firebase-config.js";
 import { EID_RE } from "../common/eid.js";
 import { addToLeaderboard } from "../common/leaderboard.js";
+import { Music } from "../common/music.js";
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
@@ -145,14 +146,14 @@ function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = nul
 function onMeta() {
   if (!meta) return;
   if (meta.state === "lobby") {
-    show("screen-lobby");
+    show("screen-lobby"); Music.stop();
     $("lobby-code").textContent = ROOM;
     $("lobby-mode").textContent = modeLabel();
     renderHowto();
     $("btn-start").style.display = IS_HOST ? "block" : "none";
     $("lobby-hint").style.display = IS_HOST ? "none" : "block";
   } else if (meta.state === "won") {
-    show("screen-win");
+    show("screen-win"); Music.stop();
     renderWinners();
     $("btn-again").style.display = IS_HOST ? "block" : "none";
     $("win-hint").textContent = IS_HOST ? "" : "Waiting for the host...";
@@ -160,7 +161,7 @@ function onMeta() {
     stopAuto();
   } else { // playing
     soundWon = "";
-    show("screen-game");
+    show("screen-game"); Music.start();
     if (IS_HOST) { renderHostView(); }
     else { ensureMyCard(); renderGame(); }
     if (meta.lastCalled && meta.lastCalled !== soundCalled) { soundCalled = meta.lastCalled; Sound.draw(); }
@@ -461,10 +462,12 @@ $("btn-copy").addEventListener("click", async () => {
   setTimeout(() => ($("btn-copy").textContent = "Copy invite link"), 1500);
 });
 $("btn-mute").addEventListener("click", () => { $("btn-mute").textContent = Sound.toggle() ? "🔇" : "🔊"; });
+$("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 $("btn-mute").textContent = Sound.isMuted() ? "🔇" : "🔊";
 $("btn-home").addEventListener("click", () => { location.href = "../"; });
 $("btn-leave").addEventListener("click", () => { location.href = "../"; });
-async function leave() { if (ROOM && ME) { try { await update(ref(db, `bingo/${ROOM}/players/${ME}`), { connected: false }); } catch {} } detach(); ROOM = null; IS_HOST = false; meta = null; players = {}; myCard = null; myMarks = null; poolCache = null; show("screen-join"); }
+async function leave() { if (ROOM && ME) { try { await update(ref(db, `bingo/${ROOM}/players/${ME}`), { connected: false }); } catch {} } detach(); ROOM = null; IS_HOST = false; meta = null; players = {}; myCard = null; myMarks = null; poolCache = null; Music.stop(); show("screen-join"); }
 
 // ---- feedback (writes to shared /feedback, tagged Bingo) -------------------
 let fbRating = 0;
