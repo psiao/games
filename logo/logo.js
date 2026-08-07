@@ -60,7 +60,7 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./logo-content.js?v=1"); LOGOS = m.LOGOS; CATEGORIES = m.CATEGORIES; logoUrl = m.logoUrl; contentLoaded = true; return true; }
+  try { const m = await import("./logo-content.js?v=2"); LOGOS = m.LOGOS; CATEGORIES = m.CATEGORIES; logoUrl = m.logoUrl; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the brand bank."); return false; }
 }
 function poolForCategory(category) {

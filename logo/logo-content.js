@@ -9,8 +9,11 @@
 export const LOGODEV_TOKEN = "pk_YCYSOoGWSHCIMcDHbn9IFA";
 
 // Build the logo image URL for a domain (edit here if you ever switch providers).
+// LOGO_REV: bump this number any time you want every client to re-pull fresh
+// logos from logo.dev (it changes the URL, so browsers discard cached copies).
+export const LOGO_REV = 2;
 export function logoUrl(domain) {
-  return `https://img.logo.dev/${domain}?token=${LOGODEV_TOKEN}&size=400&format=png&retina=true`;
+  return `https://img.logo.dev/${domain}?token=${LOGODEV_TOKEN}&size=512&format=png&retina=true&rev=${LOGO_REV}`;
 }
 
 export const CATEGORIES = [
@@ -141,7 +144,7 @@ export const LOGOS = [
   { domain: "rolls-roycemotorcars.com", answer: "Rolls-Royce", accept: ["rolls royce"], category: "Automotive" },
   { domain: "mitsubishicars.com", answer: "Mitsubishi", accept: [], category: "Automotive" },
   { domain: "peugeot.com", answer: "Peugeot", accept: [], category: "Automotive" },
-  { domain: "renault.com", answer: "Renault", accept: [], category: "Automotive" },
+  { domain: "renault.fr", answer: "Renault", accept: [], category: "Automotive" },
   { domain: "fiat.com", answer: "Fiat", accept: [], category: "Automotive" },
   { domain: "dodge.com", answer: "Dodge", accept: [], category: "Automotive" },
   { domain: "cadillac.com", answer: "Cadillac", accept: [], category: "Automotive" },
