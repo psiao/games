@@ -17,6 +17,7 @@
 import { auth, db } from "../common/firebase-config.js";
 import { EID_RE } from "../common/eid.js";
 import { addToLeaderboard } from "../common/leaderboard.js";
+import { Music } from "../common/music.js";
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
@@ -218,12 +219,12 @@ let soundTurnKey = "", soundEndedKey = "";
 function renderMeta() {
   if (!meta) return;
   if (meta.state === "lobby") {
-    show("screen-lobby");
+    show("screen-lobby"); Music.stop();
     $("lobby-code").textContent = ROOM;
     $("btn-start").style.display = IS_HOST ? "block" : "none";
     $("lobby-hint").style.display = IS_HOST ? "none" : "block";
   } else if (meta.state === "gameEnd") {
-    show("screen-end");
+    show("screen-end"); Music.stop();
     renderPodium();
     $("btn-again").style.display = IS_HOST ? "block" : "none";
     $("again-diff").style.display = IS_HOST ? "block" : "none";
@@ -234,7 +235,7 @@ function renderMeta() {
     }
   } else {
     soundEndedKey = "";
-    show("screen-game");
+    show("screen-game"); Music.start();
     renderGameHeader();
     setupToolbarVisibility();
     const key = `${meta.round}:${meta.turnIndex}`;
@@ -384,12 +385,14 @@ $("btn-mute").addEventListener("click", () => {
   const muted = Sound.toggle();
   $("btn-mute").textContent = muted ? "🔇" : "🔊";
 });
+$("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 
 async function leaveGame() {
   if (ROOM && ME) { try { await update(ref(db, `rooms/${ROOM}/players/${ME}`), { connected: false }); } catch {} }
   detachAll();
   ROOM = null; IS_HOST = false; meta = null; players = {};
-  show("screen-join");
+  Music.stop(); show("screen-join");
 }
 
 // ===========================================================================
