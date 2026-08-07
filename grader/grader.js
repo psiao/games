@@ -9,6 +9,7 @@
 import { auth, db } from "../common/firebase-config.js";
 import { EID_RE } from "../common/eid.js";
 import { addToLeaderboard } from "../common/leaderboard.js";
+import { Music } from "../common/music.js";
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
@@ -53,7 +54,7 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./grader-content.js?v=1"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
+  try { const m = await import("./grader-content.js?v=2"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the question bank."); return false; }
 }
 // ladder: qIndex -> which grade & subject (climbs grades, rotates subjects)
@@ -137,6 +138,7 @@ function onMeta() {
     renderGame();
   }
   if (IS_HOST && meta.state === "playing") startHostTimer(); else stopHostTimer();
+  if (meta.state === "playing" || meta.state === "reveal") Music.start(); else Music.stop();
 }
 function onPlayers() {
   if (!meta) return;
@@ -194,7 +196,7 @@ function renderGame() {
   } else { msg = meta.state === "reveal" ? "Answer revealed — review, then Next." : "Class is answering…"; }
   $("status-line").textContent = msg;
   if (meta.state === "reveal") { $("mini-board").style.display = "block"; renderScoreboard($("mini-board"), false); } else $("mini-board").style.display = "none";
-  if (IS_HOST) { $("btn-reveal").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = meta.state === "reveal" ? "inline-block" : "none"; }
+  if (IS_HOST) { $("btn-reveal").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = meta.state === "reveal" ? "inline-block" : "none"; $("btn-next").textContent = ((meta.qIndex || 0) + 1 >= meta.count) ? "See results \u2192" : "Next question"; }
 }
 function renderHostDash() {
   const list = $("dash-list"); if (!list) return;
@@ -312,10 +314,10 @@ async function advance() {
 }
 async function finalize() {
   if (finalizing) return; finalizing = true;
+  await update(ref(db, `grader/${ROOM}/meta`), { state: "done" });
   const scorers = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid);
   const top = Math.max(0, ...scorers.map(([, p]) => p.score || 0));
-  for (const [, p] of scorers) { if (!p.eid) continue; await addToLeaderboard(p.eid, p.name, "grader", p.score || 0, top > 0 && (p.score || 0) === top); }
-  await update(ref(db, `grader/${ROOM}/meta`), { state: "done" });
+  for (const [, p] of scorers) { if (!p.eid) continue; try { await addToLeaderboard(p.eid, p.name, "grader", p.score || 0, top > 0 && (p.score || 0) === top); } catch (e) {} }
 }
 
 // ---- feedback -------------------------------------------------------------
@@ -336,6 +338,8 @@ $("fb-send").addEventListener("click", async () => {
 // ---- misc -----------------------------------------------------------------
 $("btn-copy").addEventListener("click", async () => { const url = `${location.origin}${location.pathname}?room=${ROOM}`; try { await navigator.clipboard.writeText(url); $("btn-copy").textContent = "Copied!"; } catch { prompt("Invite link:", url); } setTimeout(() => ($("btn-copy").textContent = "Copy invite link"), 1500); });
 $("btn-mute").addEventListener("click", () => { $("btn-mute").textContent = Sound.toggle() ? "🔇" : "🔊"; });
+$("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 $("btn-mute").textContent = Sound.isMuted() ? "🔇" : "🔊";
 $("btn-leave").addEventListener("click", () => { location.href = "../"; });
 

@@ -78,10 +78,10 @@ export const QUESTIONS = {
     ],
     Geography: [
       { q: "In which direction does the sun rise?", a: ["North", "South", "East", "West"], c: 2 },
-      { q: "What is the name of the star map tool that points north?", a: ["Ruler", "Compass", "Clock", "Scale"], c: 1 },
+      { q: "Which tool is used to find directions like north and south?", a: ["Ruler", "Compass", "Clock", "Scale"], c: 1 },
       { q: "How many continents are there on Earth?", a: ["5", "6", "7", "8"], c: 2 },
       { q: "What do we call a tall landform with a peak?", a: ["Valley", "Mountain", "Plain", "River"], c: 1 },
-      { q: "What is the name of a person who makes maps... a map shows?", a: ["Sounds", "Places", "Smells", "Time"], c: 1 },
+      { q: "What does a map show us?", a: ["The time of day", "Places and directions", "A song", "The temperature"], c: 1 },
       { q: "Which of these is a country?", a: ["Canada", "Africa", "Pacific", "Asia"], c: 0 },
     ],
     History: [
