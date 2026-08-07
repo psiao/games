@@ -116,3 +116,12 @@ textarea{min-height:80px;resize:vertical;margin-bottom:12px}
 .rc-name{font-weight:800}
 .rc-verdict{grid-column:1 / -1;font-size:13px;font-weight:700;color:var(--brand-ink);order:3;margin-top:-4px}
 .rc-score{font-weight:900;color:var(--brand-accent);font-size:14px}
+
+/* ---- social chat ---- */
+.chat-log{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:14px auto 8px;max-width:460px;height:118px;overflow-y:auto;text-align:left;display:flex;flex-direction:column;gap:5px}
+.cmsg{font-size:13px;line-height:1.35;word-break:break-word}
+.cmsg .cwho{font-weight:800;color:var(--brand-accent)}
+.cmsg.sys{color:var(--muted);font-style:italic;text-align:center;font-size:12px}
+.chat-row{display:flex;gap:8px;max-width:460px;margin:0 auto 12px}
+.chat-row input{flex:1}
+.chat-row .btn-primary{flex:0 0 auto}

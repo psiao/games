@@ -137,12 +137,12 @@ export const QUESTIONS = {
   },
   4: {
     Math: [
-      { q: "What is 12 × 12?", a: ["124", "144", "142", "154"], c: 1 },
-      { q: "What is 3/4 written as a decimal?", a: ["0.25", "0.5", "0.75", "0.34"], c: 2 },
-      { q: "What is the perimeter of a square with sides of 5?", a: ["10", "20", "25", "15"], c: 1 },
-      { q: "Which number is a prime number?", a: ["9", "15", "11", "21"], c: 2 },
-      { q: "What is 1,000 − 250?", a: ["650", "750", "850", "700"], c: 1 },
-      { q: "How many degrees are in a full circle?", a: ["90", "180", "270", "360"], c: 3 },
+      { q: "What is 8 × 7?", a: ["54", "56", "63", "48"], c: 1 },
+      { q: "What is 6 × 9 − 4?", a: ["50", "45", "58", "54"], c: 0 },
+      { q: "What is 3/5 of 25?", a: ["10", "15", "20", "12"], c: 1 },
+      { q: "Which of these is a prime number?", a: ["21", "15", "13", "27"], c: 2 },
+      { q: "What is 1,000 − 250 − 125?", a: ["625", "725", "615", "750"], c: 0 },
+      { q: "What is 144 ÷ 12?", a: ["12", "14", "11", "16"], c: 0 },
     ],
     Science: [
       { q: "What is the powerhouse of the cell?", a: ["Nucleus", "Mitochondria", "Ribosome", "Membrane"], c: 1 },
@@ -161,12 +161,12 @@ export const QUESTIONS = {
       { q: "What do you call the person who writes a book?", a: ["Editor", "Author", "Publisher", "Narrator"], c: 1 },
     ],
     Geography: [
-      { q: "What is the longest river in the world (commonly cited)?", a: ["Amazon", "Nile", "Mississippi", "Yangtze"], c: 1 },
+      { q: "What is the capital of Canada?", a: ["Toronto", "Ottawa", "Vancouver", "Montreal"], c: 1 },
       { q: "What is the largest continent by area?", a: ["Africa", "Asia", "Europe", "North America"], c: 1 },
-      { q: "What is the capital of France?", a: ["London", "Rome", "Paris", "Berlin"], c: 2 },
-      { q: "What mountain range is the tallest in the world?", a: ["Andes", "Rockies", "Alps", "Himalayas"], c: 3 },
+      { q: "Which river flows through Egypt?", a: ["Amazon", "Nile", "Ganges", "Danube"], c: 1 },
+      { q: "Mount Everest lies in which mountain range?", a: ["Andes", "Alps", "Himalayas", "Rockies"], c: 2 },
       { q: "Which U.S. state is the largest by area?", a: ["Texas", "California", "Alaska", "Montana"], c: 2 },
-      { q: "What is the name for a scientist who studies weather?", a: ["Geologist", "Meteorologist", "Biologist", "Astronomer"], c: 1 },
+      { q: "How many Great Lakes are there?", a: ["3", "4", "5", "6"], c: 2 },
     ],
     History: [
       { q: "Who was President during the American Civil War?", a: ["George Washington", "Abraham Lincoln", "Theodore Roosevelt", "John Adams"], c: 1 },
@@ -179,12 +179,12 @@ export const QUESTIONS = {
   },
   5: {
     Math: [
-      { q: "What is the square root of 144?", a: ["11", "12", "13", "14"], c: 1 },
-      { q: "What is 2/3 + 1/6?", a: ["3/9", "5/6", "1/2", "3/6"], c: 1 },
-      { q: "What is 15% of 200?", a: ["15", "20", "30", "45"], c: 2 },
-      { q: "What is the value of 5³ (5 cubed)?", a: ["15", "25", "125", "555"], c: 2 },
-      { q: "What is the area of a rectangle 8 long and 3 wide?", a: ["11", "22", "24", "48"], c: 2 },
-      { q: "Which of these is an obtuse angle?", a: ["45°", "90°", "120°", "30°"], c: 2 },
+      { q: "What is the square root of 169?", a: ["12", "13", "14", "15"], c: 1 },
+      { q: "Solve using order of operations: 8 + 4 × 3", a: ["36", "20", "24", "14"], c: 1 },
+      { q: "What is 40% of 150?", a: ["45", "60", "75", "50"], c: 1 },
+      { q: "What is 7³ (7 cubed)?", a: ["49", "147", "343", "721"], c: 2 },
+      { q: "What is 2/3 of 90?", a: ["45", "60", "30", "120"], c: 1 },
+      { q: "What is 15 × 12?", a: ["170", "180", "150", "210"], c: 1 },
     ],
     Science: [
       { q: "What is the chemical symbol for water?", a: ["CO2", "H2O", "O2", "NaCl"], c: 1 },
@@ -204,11 +204,11 @@ export const QUESTIONS = {
     ],
     Geography: [
       { q: "What is the smallest country in the world?", a: ["Monaco", "Vatican City", "San Marino", "Malta"], c: 1 },
-      { q: "What is the capital of Japan?", a: ["Beijing", "Seoul", "Tokyo", "Bangkok"], c: 2 },
-      { q: "Which line of longitude is at 0 degrees?", a: ["Equator", "Prime Meridian", "Tropic of Cancer", "Arctic Circle"], c: 1 },
+      { q: "What is the capital of Australia?", a: ["Sydney", "Melbourne", "Canberra", "Perth"], c: 2 },
+      { q: "What is the capital of Brazil?", a: ["Rio de Janeiro", "São Paulo", "Brasília", "Buenos Aires"], c: 2 },
       { q: "The Sahara Desert is located on which continent?", a: ["Asia", "Australia", "Africa", "South America"], c: 2 },
-      { q: "How many U.S. states are there?", a: ["48", "50", "52", "51"], c: 1 },
-      { q: "Which country has the largest population (historically)?", a: ["USA", "India", "China", "Russia"], c: 2 },
+      { q: "What is the capital of Turkey?", a: ["Istanbul", "Ankara", "Izmir", "Bursa"], c: 1 },
+      { q: "Which two continents does the Ural range separate?", a: ["Africa and Asia", "Europe and Asia", "Europe and Africa", "Asia and Australia"], c: 1 },
     ],
     History: [
       { q: "Who wrote the Declaration of Independence's first draft?", a: ["George Washington", "Thomas Jefferson", "Benjamin Franklin", "John Adams"], c: 1 },

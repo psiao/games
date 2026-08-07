@@ -43,6 +43,7 @@ document.addEventListener("click", () => Sound.ensure(), { once: true });
 let ME, ROOM, IS_HOST = false, meta = null, players = {}, listeners = [];
 let myAnswer = null, hostTimer = null, revealing = false, finalizing = false;
 let QUESTIONS = null, SUBJECTS = null, GRADE_LABEL = null, contentLoaded = false; // host-only
+let chat = {};
 let lastQid = "", soundState = "";
 
 onAuthStateChanged(auth, (u) => { if (u) { ME = u.uid; offerRejoin(); } });
@@ -54,7 +55,7 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./grader-content.js?v=2"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
+  try { const m = await import("./grader-content.js?v=3"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the question bank."); return false; }
 }
 // ladder: qIndex -> which grade & subject (climbs grades, rotates subjects)
@@ -117,6 +118,7 @@ function attachListeners(code) {
   detach();
   const m = ref(db, `grader/${code}/meta`); onValue(m, s => { meta = s.val(); if (meta) { IS_HOST = meta.hostUid === ME; onMeta(); } }); listeners.push(m);
   const p = ref(db, `grader/${code}/players`); onValue(p, s => { players = s.val() || {}; onPlayers(); }); listeners.push(p);
+  const c = ref(db, `grader/${code}/chat`); onValue(c, s => { chat = s.val() || {}; renderChat(); }); listeners.push(c);
 }
 function detach() { listeners.forEach(r => off(r)); listeners = []; stopHostTimer(); }
 function stopHostTimer() { if (hostTimer) { clearInterval(hostTimer); hostTimer = null; } }
@@ -233,6 +235,21 @@ function renderReportCards() {
   }).join("") || `<div class="dash-empty">No players.</div>`;
 }
 
+function renderChat() {
+  const log = $("chat-log"); if (!log) return;
+  const entries = Object.values(chat || {}).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  log.innerHTML = entries.map(e => e.system
+    ? `<div class="cmsg sys">${esc(e.text)}</div>`
+    : `<div class="cmsg"><span class="cwho">${esc(e.name)}:</span> ${esc(e.text)}</div>`
+  ).join("") || `<div class="cmsg sys">Chat with everyone here \uD83D\uDC4B</div>`;
+  log.scrollTop = log.scrollHeight;
+}
+function sendChat() {
+  const t = ($("chat-input").value || "").trim(); if (!t || !ROOM) return;
+  push(ref(db, `grader/${ROOM}/chat`), { uid: ME, name: (players[ME] && players[ME].name) || "?", text: t.slice(0, 200), ts: Date.now() });
+  $("chat-input").value = "";
+}
+
 function submitAnswer(i) {
   if (IS_HOST || !meta || meta.state !== "playing" || myAnswer) return;
   const q = meta.currentQ; if (!q) return;
@@ -252,6 +269,7 @@ $("btn-start").addEventListener("click", async () => {
   // reset per-player scores/correct for a fresh climb
   const resets = {}; Object.keys(players).forEach(uid => { if (uid !== meta.hostUid) { resets[`grader/${ROOM}/players/${uid}/score`] = 0; resets[`grader/${ROOM}/players/${uid}/correct`] = 0; } });
   if (Object.keys(resets).length) await update(ref(db), resets);
+  try { await remove(ref(db, `grader/${ROOM}/chat`)); } catch (e) {}
   await drawNext(true);
 });
 $("btn-reveal").addEventListener("click", () => { if (IS_HOST) doReveal(); });
@@ -260,6 +278,7 @@ $("btn-again").addEventListener("click", async () => {
   if (!IS_HOST) return; if (!(await loadContent())) return; finalizing = false;
   const resets = {}; Object.keys(players).forEach(uid => { if (uid !== meta.hostUid) { resets[`grader/${ROOM}/players/${uid}/score`] = 0; resets[`grader/${ROOM}/players/${uid}/correct`] = 0; } });
   resets[`grader/${ROOM}/meta/qIndex`] = -1; await update(ref(db), resets);
+  try { await remove(ref(db, `grader/${ROOM}/chat`)); } catch (e) {}
   await drawNext(true);
 });
 
@@ -339,6 +358,8 @@ $("fb-send").addEventListener("click", async () => {
 $("btn-copy").addEventListener("click", async () => { const url = `${location.origin}${location.pathname}?room=${ROOM}`; try { await navigator.clipboard.writeText(url); $("btn-copy").textContent = "Copied!"; } catch { prompt("Invite link:", url); } setTimeout(() => ($("btn-copy").textContent = "Copy invite link"), 1500); });
 $("btn-mute").addEventListener("click", () => { $("btn-mute").textContent = Sound.toggle() ? "🔇" : "🔊"; });
 $("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("chat-send").addEventListener("click", sendChat);
+$("chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
 $("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 $("btn-mute").textContent = Sound.isMuted() ? "🔇" : "🔊";
 $("btn-leave").addEventListener("click", () => { location.href = "../"; });
