@@ -20,14 +20,17 @@
         </div>
         <div class="divider">or host a new game</div>
         <div class="row">
-          <div class="field" style="flex:1"><label for="opt-count">Questions per grade</label>
-            <select id="opt-count"><option value="1">1 (5 total)</option><option value="2" selected>2 (10 total)</option><option value="3">3 (15 total)</option></select>
+          <div class="field" style="flex:1"><label for="opt-start">Start at grade</label>
+            <select id="opt-start"><option value="1">Grade 1 (easiest)</option><option value="2">Grade 2</option><option value="3" selected>Grade 3</option><option value="4">Grade 4</option><option value="5">Grade 5 (hardest)</option></select>
           </div>
-          <div class="field" style="flex:1"><label for="opt-time">Seconds each</label>
-            <select id="opt-time"><option value="15">15s</option><option value="20" selected>20s</option><option value="30">30s</option></select>
+          <div class="field" style="flex:1"><label for="opt-count">Questions</label>
+            <select id="opt-count"><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
           </div>
         </div>
-        <p class="tinynote">Climbs Grade 1 → 5, changing subjects (Math, Science, English, Geography, History) as it goes.</p>
+        <div class="field"><label for="opt-time">Seconds each</label>
+          <select id="opt-time"><option value="15">15s</option><option value="20" selected>20s</option><option value="30">30s</option></select>
+        </div>
+        <p class="tinynote">Climbs from your chosen grade up to Grade 5, changing subjects each round. Pick <b>Grade 5</b> for an all-hard game.</p>
         <button id="btn-create" class="btn-ghost full">Create game</button>
         <div id="join-error" class="error"></div>
         <p class="hint" id="rejoin-hint" style="display:none"></p>
@@ -113,6 +116,6 @@
     </div>
   </div>
 
-  <script type="module" src="grader.js?v=3"></script>
+  <script type="module" src="grader.js?v=4"></script>
 </body>
 </html>

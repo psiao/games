@@ -188,11 +188,11 @@ export const QUESTIONS = {
     ],
     Science: [
       { q: "What is the chemical symbol for water?", a: ["CO2", "H2O", "O2", "NaCl"], c: 1 },
-      { q: "What is the largest planet in our solar system?", a: ["Saturn", "Earth", "Jupiter", "Neptune"], c: 2 },
+      { q: "What is the chemical symbol for gold?", a: ["Gd", "Au", "Go", "Ag"], c: 1 },
       { q: "What do we call an animal that eats both plants and meat?", a: ["Herbivore", "Carnivore", "Omnivore", "Producer"], c: 2 },
       { q: "What gas makes up most of Earth's atmosphere?", a: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], c: 1 },
-      { q: "What is the boiling point of water in Celsius at sea level?", a: ["50°C", "90°C", "100°C", "212°C"], c: 2 },
-      { q: "Which part of the body pumps blood?", a: ["Lungs", "Brain", "Heart", "Liver"], c: 2 },
+      { q: "What type of rock forms from cooled magma or lava?", a: ["Sedimentary", "Igneous", "Metamorphic", "Fossil"], c: 1 },
+      { q: "How many chambers does the human heart have?", a: ["2", "3", "4", "6"], c: 2 },
     ],
     English: [
       { q: "What is an exaggeration for effect (e.g., 'I've told you a million times') called?", a: ["Simile", "Hyperbole", "Metaphor", "Idiom"], c: 1 },

@@ -55,12 +55,14 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./grader-content.js?v=3"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
+  try { const m = await import("./grader-content.js?v=4"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the question bank."); return false; }
 }
 // ladder: qIndex -> which grade & subject (climbs grades, rotates subjects)
-function ladderAt(qIndex, perGrade) {
-  const grade = Math.min(MAX_GRADE, Math.floor(qIndex / perGrade) + 1);
+function ladderAt(qIndex, startGrade, count) {
+  const sg = Math.min(MAX_GRADE, Math.max(1, startGrade || 1));
+  const numGrades = MAX_GRADE - sg + 1;
+  const grade = Math.min(MAX_GRADE, sg + Math.floor(qIndex * numGrades / Math.max(1, count || 10)));
   const subject = SUBJECTS[qIndex % SUBJECTS.length];
   return { grade, subject };
 }
@@ -73,11 +75,12 @@ function pickN(arr, n) { const a = arr.slice(); for (let i = a.length - 1; i > 0
 // ---- create / join --------------------------------------------------------
 $("btn-create").addEventListener("click", async () => {
   const name = getName(); if (!name) return; const eid = getEid(); if (!eid) return;
-  const perGrade = Number($("opt-count").value);
+  const startGrade = Number($("opt-start").value);
+  const count = Number($("opt-count").value);
   const code = Array.from({ length: 4 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
   try {
     await set(ref(db, `grader/${code}/meta`), {
-      hostUid: ME, perGrade, count: MAX_GRADE * perGrade, questionSeconds: Number($("opt-time").value),
+      hostUid: ME, startGrade, count, questionSeconds: Number($("opt-time").value),
       state: "lobby", qIndex: -1, currentQ: null, reveal: null, usedQ: [], createdAt: Date.now(),
     });
     await joinRoom(code, name, eid);
@@ -149,7 +152,7 @@ function onPlayers() {
   if (IS_HOST && meta.state === "playing") checkAllAnswered();
 }
 
-const lobbyLabel = () => `Climb Grade 1 → ${MAX_GRADE} · ${meta.count} questions`;
+const lobbyLabel = () => { const sg = meta.startGrade || 1; return sg >= MAX_GRADE ? `Grade ${MAX_GRADE} only · ${meta.count} questions` : `Grade ${sg} → ${MAX_GRADE} · ${meta.count} questions`; };
 function renderHowto() {
   $("howto-list").innerHTML = [
     "Questions climb from Grade 1 up to Grade 5, switching school subjects each round.",
@@ -286,7 +289,7 @@ function usedList() { const u = meta && meta.usedQ; return Array.isArray(u) ? u.
 async function drawNext(first) {
   revealing = false;
   const qIndex = first ? 0 : (meta.qIndex || 0) + 1;
-  const { grade, subject } = ladderAt(qIndex, meta.perGrade || 2);
+  const { grade, subject } = ladderAt(qIndex, meta.startGrade || 1, meta.count || 10);
   const pool = poolFor(grade, subject);
   let used = usedList();
   let avail = pool.filter((id) => !used.includes(id));
