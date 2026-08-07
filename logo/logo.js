@@ -9,6 +9,7 @@
 import { auth, db } from "../common/firebase-config.js";
 import { EID_RE } from "../common/eid.js";
 import { addToLeaderboard } from "../common/leaderboard.js";
+import { Music } from "../common/music.js";
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
@@ -142,6 +143,7 @@ function onMeta() {
     renderGame();
   }
   if (IS_HOST && meta.state === "playing") startHostTimer(); else stopHostTimer();
+  if (meta.state === "playing" || meta.state === "revealed") Music.start(); else Music.stop();
 }
 function onPlayers() {
   if (!meta) return;
@@ -199,7 +201,7 @@ function renderGame() {
   // reveal scoreboard
   if (revealed) { $("mini-board").style.display = "block"; renderScoreboard($("mini-board"), false); } else $("mini-board").style.display = "none";
   // host buttons
-  if (IS_HOST) { $("btn-zoom").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = revealed ? "inline-block" : "none"; }
+  if (IS_HOST) { $("btn-zoom").style.display = meta.state === "playing" ? "inline-block" : "none"; $("btn-next").style.display = revealed ? "inline-block" : "none"; $("btn-next").textContent = ((meta.qIndex || 0) + 1 >= meta.count) ? "See results \u2192" : "Next logo"; }
 }
 function renderScoreboard(el, big) {
   const rows = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid).map(([, p]) => p).sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -300,10 +302,10 @@ async function nextRound() {
 }
 async function finalize() {
   if (finalizing) return; finalizing = true;
+  await update(ref(db, `logo/${ROOM}/meta`), { state: "done" });
   const scorers = Object.entries(players).filter(([uid, p]) => p && uid !== meta.hostUid);
   const top = Math.max(0, ...scorers.map(([, p]) => p.score || 0));
-  for (const [, p] of scorers) { if (!p.eid) continue; await addToLeaderboard(p.eid, p.name, "logos", p.score || 0, top > 0 && (p.score || 0) === top); }
-  await update(ref(db, `logo/${ROOM}/meta`), { state: "done" });
+  for (const [, p] of scorers) { if (!p.eid) continue; try { await addToLeaderboard(p.eid, p.name, "logos", p.score || 0, top > 0 && (p.score || 0) === top); } catch (e) {} }
 }
 
 // ---- feedback -------------------------------------------------------------
@@ -324,6 +326,8 @@ $("fb-send").addEventListener("click", async () => {
 // ---- misc -----------------------------------------------------------------
 $("btn-copy").addEventListener("click", async () => { const url = `${location.origin}${location.pathname}?room=${ROOM}`; try { await navigator.clipboard.writeText(url); $("btn-copy").textContent = "Copied!"; } catch { prompt("Invite link:", url); } setTimeout(() => ($("btn-copy").textContent = "Copy invite link"), 1500); });
 $("btn-mute").addEventListener("click", () => { $("btn-mute").textContent = Sound.toggle() ? "🔇" : "🔊"; });
+$("btn-music").addEventListener("click", () => { $("btn-music").style.opacity = Music.toggle() ? "0.4" : "1"; });
+$("btn-music").style.opacity = Music.isMuted() ? "0.4" : "1";
 $("btn-mute").textContent = Sound.isMuted() ? "🔇" : "🔊";
 $("btn-leave").addEventListener("click", () => { location.href = "../"; });
 
