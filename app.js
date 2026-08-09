@@ -17,11 +17,11 @@ signInAnonymously(auth).catch(() => {});
 // migrated:true  -> served by this SPA at #/<id>
 // migrated:false -> still the standalone page in /<id>/ (linked until migrated)
 const GAMES = [
-  { id: "skwibble", name: "Skwibble",        ico: "🎨", accent: "#2451a9", lb: "skwibble", desc: "Draw & guess. One person sketches the secret word, everyone else races to guess it.", migrated: false },
-  { id: "bingo",    name: "Bingo",           ico: "🎱", accent: "#2451a9", lb: "bingo",    desc: "Classic bingo, hosted live. First to complete a line shouts BINGO.", migrated: false },
+  { id: "skwibble", name: "Skwibble",        ico: "🎨", accent: "#2451a9", lb: "skwibble", desc: "Draw & guess. One person sketches the secret word, everyone else races to guess it.", migrated: true },
+  { id: "bingo",    name: "Bingo",           ico: "🎱", accent: "#2451a9", lb: "bingo",    desc: "Classic bingo, hosted live. First to complete a line shouts BINGO.", migrated: true },
   { id: "trivia",   name: "Trivia",          ico: "🧠", accent: "#7c5cff", lb: "trivia",   desc: "Live quiz across 7 categories. Answer fast — the quicker you're right, the more points.", migrated: true },
-  { id: "logo",     name: "Guess the Logo",  ico: "🔎", accent: "#12b5a6", lb: "logos",    desc: "A brand logo zooms out stage by stage — the earlier you name it, the more points.", migrated: false },
-  { id: "grader",   name: "School Grader",   ico: "🎓", accent: "#e5484d", lb: "grader",   desc: "Climb Grade 1 → 5 across school subjects. Are you smarter than a 5th grader?", migrated: false },
+  { id: "logo",     name: "Guess the Logo",  ico: "🔎", accent: "#12b5a6", lb: "logos",    desc: "A brand logo zooms out stage by stage — the earlier you name it, the more points.", migrated: true },
+  { id: "grader",   name: "School Grader",   ico: "🎓", accent: "#e5484d", lb: "grader",   desc: "Climb Grade 1 → 5 across school subjects. Are you smarter than a 5th grader?", migrated: true },
 ];
 
 let current = null; // mounted game module
