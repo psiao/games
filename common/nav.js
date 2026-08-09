@@ -7,6 +7,7 @@
 (function () {
   function inject() {
     if (document.getElementById("ls-home-link")) return;
+    if (document.getElementById("app")) return; // SPA shell handles its own nav
     const css = document.createElement("style");
     css.textContent =
       ".ls-home-link{position:fixed;top:12px;left:12px;z-index:200;display:inline-flex;align-items:center;" +
