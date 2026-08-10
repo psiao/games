@@ -21,7 +21,7 @@ const GAMES = [
   { id: "bingo",    name: "Bingo",           ico: "🎱", accent: "#2451a9", lb: "bingo",    desc: "Classic bingo, hosted live. First to complete a line shouts BINGO.", migrated: true },
   { id: "trivia",   name: "Trivia",          ico: "🧠", accent: "#7c5cff", lb: "trivia",   desc: "Live quiz across 7 categories. Answer fast — the quicker you're right, the more points.", migrated: true },
   { id: "logo",     name: "Guess the Logo",  ico: "🔎", accent: "#12b5a6", lb: "logos",    desc: "A brand logo zooms out stage by stage — the earlier you name it, the more points.", migrated: true },
-  { id: "grader",   name: "School Grader",   ico: "🎓", accent: "#e5484d", lb: "grader",   desc: "Climb Grade 1 → 5 across school subjects. Are you smarter than a 5th grader?", migrated: true },
+  { id: "grader",   name: "Top of the Class", ico: "🎓", accent: "#e5484d", lb: "grader",   desc: "Climb from Grade 1 up to Grade 8 across school subjects. How high can you go?", migrated: true },
 ];
 
 let current = null; // mounted game module
@@ -62,7 +62,7 @@ async function route() {
   if (!g.migrated) { location.href = g.id + "/"; return; }
   app.innerHTML = `<div class="wrap"><p class="hint">Loading ${esc(g.name)}…</p></div>`;
   try {
-    const mod = await import(`./mod/${g.id}.js?v=1`);
+    const mod = await import(`./mod/${g.id}.js?v=2`);
     const root = document.createElement("div"); app.innerHTML = ""; app.appendChild(root);
     mod.mount(root, { db, auth, Audio, goHome: () => { location.hash = ""; } });
     current = mod;
