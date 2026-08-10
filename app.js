@@ -54,56 +54,58 @@ const scopeLabel={week:"this week",month:"this month",year:"this year",all:"all-
 async function loadScope(s){const key=scopeKey(s);if(cache[key])return cache[key];try{const snap=await get(ref(db,"lb/"+key));cache[key]=snap.val()||{};}catch{cache[key]={};}return cache[key];}
 function pointsFor(e){ return gameFilter==="all" ? (e.points||0) : ((e.byGame&&e.byGame[gameFilter])||0); }
 
+const initials = (n) => ((n||"?").trim().split(/\s+/).map(w=>w[0]||"").slice(0,2).join("").toUpperCase() || "?");
+const avColor = (n) => { let h=0; for (const c of (n||"x")) h=(h*31+c.charCodeAt(0))>>>0; return `hsl(${h%360},58%,52%)`; };
+
 function renderHub() {
   const tiles = GAMES.map(g => {
     const href = g.migrated ? `#/${g.id}` : `${g.id}/`;
-    return `<a class="tile" href="${href}" style="--acc:${g.accent}">
-      <div class="blob" style="background:color-mix(in srgb,${g.accent} 13%,transparent)"></div>
+    const bg = `linear-gradient(150deg, ${g.accent}, color-mix(in srgb, ${g.accent} 60%, #0e1630))`;
+    return `<a class="tile" href="${href}" style="background:${bg}">
       <div class="ico">${g.ico}</div><h3>${esc(g.name)}</h3><p>${esc(g.desc)}</p>
-      <span class="play" style="background:linear-gradient(180deg,${g.accent},color-mix(in srgb,${g.accent} 78%,black))">Play ${esc(g.name)} →</span>
-    </a>`;
+      <span class="play">Play &rarr;</span></a>`;
   }).join("");
-  const pills = [["all", "All games"], ...GAMES.map(g => [g.lb, g.ico + " " + g.name])]
-    .map(([k, lbl]) => `<button class="pill${k === gameFilter ? " on" : ""}" data-game="${k}">${esc(lbl)}</button>`).join("");
-  const tabs = [["week", "This Week"], ["month", "Month"], ["year", "Year"], ["all", "All-Time"]]
-    .map(([k, lbl]) => `<button class="tab${k === scope ? " on" : ""}" data-scope="${k}">${lbl}</button>`).join("");
-  app.innerHTML = `<div class="hub-wrap">
-    <div class="hub-head"><div class="brandbar" style="justify-content:center"><div class="logo">LS</div></div>
-      <h1>Game Night</h1><p class="tagline">Legal Soft engagement games</p></div>
-    <div class="tiles">${tiles}</div>
-    <div class="card">
-      <div class="lb-head"><h2 style="margin:0;font-size:20px">🏆 Leaderboard</h2></div>
-      <div id="tabs" class="lb-tabs">${tabs}</div>
-      <div id="filters" class="lb-filters">${pills}</div>
-      <div id="champ" class="champ"></div>
-      <div id="rows" class="lb-rows"></div>
-    </div></div>`;
-  injectHubStyles();
-  app.querySelector("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if (!b) return; scope = b.dataset.scope; renderHub(); });
-  app.querySelector("#filters").addEventListener("click", e => { const b = e.target.closest(".pill"); if (!b) return; gameFilter = b.dataset.game; renderHub(); });
+  const pills = [["all","All games"], ...GAMES.map(g=>[g.lb, g.ico+" "+g.name])]
+    .map(([k,l])=>`<button class="pill${k===gameFilter?" on":""}" data-game="${k}">${esc(l)}</button>`).join("");
+  const tabs = [["week","This Week"],["month","Month"],["year","Year"],["all","All-Time"]]
+    .map(([k,l])=>`<button class="tab${k===scope?" on":""}" data-scope="${k}">${l}</button>`).join("");
+  app.innerHTML = `
+    <div class="hub-bg"><span class="o1"></span><span class="o2"></span><span class="o3"></span></div>
+    <div class="hub-wrap">
+      <div class="hero">
+        <div class="hero-badge">&#127918; Legal Soft</div>
+        <h1 class="hero-title">Game Night</h1>
+        <p class="hero-sub">Pick a game, rally your team, and climb the leaderboard.</p>
+        <div class="hero-chips"><span>&#127919; ${GAMES.length} games</span><span>&#127942; Live leaderboard</span><span>&#9889; Any device</span></div>
+      </div>
+      <div class="tiles">${tiles}</div>
+      <div class="lb-card">
+        <h2 class="lb-title">&#127942; Leaderboard</h2>
+        <div id="tabs" class="lb-tabs">${tabs}</div>
+        <div id="filters" class="lb-filters">${pills}</div>
+        <div id="champ" class="champ"></div>
+        <div id="podium"></div>
+        <div id="rows" class="lb-rows"></div>
+      </div>
+    </div>`;
+  app.querySelector("#tabs").addEventListener("click", e=>{const b=e.target.closest(".tab");if(!b)return;scope=b.dataset.scope;renderHub();});
+  app.querySelector("#filters").addEventListener("click", e=>{const b=e.target.closest(".pill");if(!b)return;gameFilter=b.dataset.game;renderHub();});
   renderBoard();
 }
 async function renderBoard() {
-  const rows = app.querySelector("#rows"), champ = app.querySelector("#champ"); if (!rows) return;
-  const data = await loadScope(scope);
-  const arr = Object.values(data).map(e => ({ ...e, _p: pointsFor(e) })).filter(e => e._p > 0).sort((a, b) => b._p - a._p || (b.wins || 0) - (a.wins || 0));
-  if (!arr.length) { rows.innerHTML = `<div class="dash-empty">No scores ${scopeLabel[scope]} yet — go play a game! 🎮</div>`; champ.innerHTML = ""; return; }
-  const medals = ["🥇", "🥈", "🥉"];
-  const fname = gameFilter === "all" ? "Overall" : (GAMES.find(g => g.lb === gameFilter)?.name || gameFilter);
-  champ.innerHTML = `👑 ${esc(fname)} champion ${scopeLabel[scope]}: <b>${esc(arr[0].name || "—")}</b> · ${arr[0]._p} pts`;
-  rows.innerHTML = arr.slice(0, 25).map((e, i) => `<div class="sb-row ${i === 0 ? "sb-top" : ""}"><span class="sb-rank">${i < 3 ? medals[i] : i + 1}</span><span class="sb-name">${esc(e.name || "—")}<div style="font-size:11px;color:var(--muted);font-weight:500">${e.games || 0} game${(e.games || 0) !== 1 ? "s" : ""} · ${e.wins || 0} win${(e.wins || 0) !== 1 ? "s" : ""}</div></span><span class="sb-pts">${e._p}</span></div>`).join("");
+  const rows=app.querySelector("#rows"), champ=app.querySelector("#champ"), pod=app.querySelector("#podium"); if(!rows) return;
+  const data=await loadScope(scope);
+  const arr=Object.values(data).map(e=>({...e,_p:pointsFor(e)})).filter(e=>e._p>0).sort((a,b)=>b._p-a._p||(b.wins||0)-(a.wins||0));
+  if(!arr.length){ pod.innerHTML=""; champ.innerHTML=""; rows.innerHTML=`<div class="dash-empty">No scores ${scopeLabel[scope]} yet &mdash; go play a game! &#127918;</div>`; return; }
+  const fname=gameFilter==="all"?"Overall":(GAMES.find(g=>g.lb===gameFilter)?.name||gameFilter);
+  champ.innerHTML=`&#128081; <b>${esc(arr[0].name||"—")}</b> leads ${esc(fname)} ${scopeLabel[scope]} &middot; ${arr[0]._p} pts`;
+  const medals=["&#129351;","&#129352;","&#129353;"]; const top=arr.slice(0,3);
+  const podCard=(e,i)=>`<div class="pod pod-${i+1}"><div class="medal">${medals[i]}</div><div class="pav" style="background:${avColor(e.name)}">${initials(e.name)}</div><div class="pname">${esc(e.name||"—")}</div><div class="ppts">${e._p}</div><div class="bar"></div></div>`;
+  pod.innerHTML = top.length>=2 ? `<div class="podium">${top.map(podCard).join("")}</div>` : "";
+  const start = top.length>=2 ? 3 : 0;
+  rows.innerHTML = arr.slice(start,25).map((e,idx)=>{ const rank=start+idx+1;
+    return `<div class="lb-row"><span class="rk">${rank}</span><span class="lb-av" style="background:${avColor(e.name)}">${initials(e.name)}</span><span class="lb-nm">${esc(e.name||"—")}<small>${e.games||0} game${(e.games||0)!==1?"s":""} &middot; ${e.wins||0} win${(e.wins||0)!==1?"s":""}</small></span><span class="lb-pt">${e._p}</span></div>`;
+  }).join("");
 }
-let hubStyled = false;
-function injectHubStyles() {
-  if (hubStyled) return; hubStyled = true;
-  const s = document.createElement("style");
-  s.textContent = `.lb-head{margin-bottom:12px}.lb-tabs,.lb-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-  .tab,.pill{border:1px solid var(--line);background:var(--white);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
-  .tab.on,.pill.on{background:var(--brand-accent);color:#fff;border-color:var(--brand-accent)}
-  .champ{background:var(--brand-surface);border-radius:12px;padding:10px 14px;font-size:13.5px;margin-bottom:12px}
-  .lb-rows{display:grid;gap:7px}`;
-  document.head.appendChild(s);
-}
-
 onAuthStateChanged(auth, u => { if (u && !location.hash.replace(/^#\/?/, "")) renderBoard(); });
 route();
