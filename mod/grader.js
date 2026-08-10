@@ -2,7 +2,7 @@
 // mod/grader.js — grader as an SPA module (mount/unmount). Same Firebase model.
 // ===========================================================================
 // ===========================================================================
-// LS "Are You Smarter Than a School Grader?" — grader.js
+// LS "Top of the Class" — grader.js
 // A quiz that CLIMBS grades 1->5, rotating school subjects each round.
 // Everyone answers on their device; faster correct answers score more.
 // At the end each player gets a report card ("as smart as a Nth grader").
@@ -23,7 +23,7 @@ import {
 const $ = (id) => document.getElementById(id);
 const show = (s) => { document.querySelectorAll(".screen").forEach(x => x.classList.remove("active")); $(s).classList.add("active"); };
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const MAX_GRADE = 5;
+const MAX_GRADE = 8;
 
 // ---- sound ----------------------------------------------------------------
 const Sound = {
@@ -44,7 +44,7 @@ const SCREENS = `
   <!-- JOIN -->
   <section id="screen-join" class="screen active">
     <div class="wrap">
-      <div class="brandbar"><div class="logo">LS</div><div><h1>School Grader</h1><p class="tagline">Are you smarter than a…?</p></div></div>
+      <div class="brandbar"><div class="logo">LS</div><div><h1>Top of the Class</h1><p class="tagline">Climb from Grade 1 to Grade 8</p></div></div>
       <div class="card">
         <div class="field"><label for="name">Your name</label><input id="name" maxlength="20" placeholder="e.g. Alex" autocomplete="off" /></div>
         <div class="field"><label for="eid">Employee ID</label><input id="eid" maxlength="10" placeholder="Employee ID" autocomplete="off" style="text-transform:uppercase" /></div>
@@ -54,7 +54,7 @@ const SCREENS = `
         <div class="divider">or host a new game</div>
         <div class="row">
           <div class="field" style="flex:1"><label for="opt-start">Start at grade</label>
-            <select id="opt-start"><option value="1">Grade 1 (easiest)</option><option value="2">Grade 2</option><option value="3" selected>Grade 3</option><option value="4">Grade 4</option><option value="5">Grade 5 (hardest)</option></select>
+            <select id="opt-start"><option value="1">Grade 1 (easiest)</option><option value="2">Grade 2</option><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5" selected>Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8 (hardest)</option></select>
           </div>
           <div class="field" style="flex:1"><label for="opt-count">Questions</label>
             <select id="opt-count"><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
@@ -63,7 +63,7 @@ const SCREENS = `
         <div class="field"><label for="opt-time">Seconds each</label>
           <select id="opt-time"><option value="15">15s</option><option value="20" selected>20s</option><option value="30">30s</option></select>
         </div>
-        <p class="tinynote">Climbs from your chosen grade up to Grade 5, changing subjects each round. Pick <b>Grade 5</b> for an all-hard game.</p>
+        <p class="tinynote">Climbs from your chosen grade up to Grade 8, changing subjects each round. Pick a higher grade for a harder game. <b>Grade 5</b> for an all-hard game.</p>
         <button id="btn-create" class="btn-ghost full">Create game</button>
         <div id="join-error" class="error"></div>
         <p class="hint" id="rejoin-hint" style="display:none"></p>
@@ -74,7 +74,7 @@ const SCREENS = `
   <!-- LOBBY -->
   <section id="screen-lobby" class="screen">
     <div class="wrap">
-      <div class="brandbar"><div class="logo">LS</div><div><h1>School Grader</h1><p class="tagline" id="lobby-sub">Lobby</p></div></div>
+      <div class="brandbar"><div class="logo">LS</div><div><h1>Top of the Class</h1><p class="tagline" id="lobby-sub">Lobby</p></div></div>
       <div class="card">
         <label class="mini-label">Room code</label>
         <div class="roomcode" id="lobby-code">----</div>
@@ -124,7 +124,7 @@ const SCREENS = `
   <!-- DONE -->
   <section id="screen-done" class="screen">
     <div class="wrap">
-      <div class="brandbar"><div class="logo">&#127891;</div><div><h1>Report Card</h1><p class="tagline">School Grader</p></div></div>
+      <div class="brandbar"><div class="logo">&#127891;</div><div><h1>Report Card</h1><p class="tagline">Top of the Class</p></div></div>
       <div class="card">
         <div class="report-card" id="report-card"></div>
         <div class="scoreboard big" id="done-board"></div>
@@ -171,7 +171,7 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./grader-content.js?v=4"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
+  try { const m = await import("./grader-content.js?v=5"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the question bank."); return false; }
 }
 // ladder: qIndex -> which grade & subject (climbs grades, rotates subjects)
@@ -339,10 +339,10 @@ function renderScoreboard(el, big) {
 }
 // report card verdict from correct-answer count
 function verdict(correct, total) {
-  if (total > 0 && correct >= total) return { txt: "Smarter than a 5th grader!", emo: "🎓🏆" };
-  const g = Math.max(1, Math.min(5, Math.ceil((correct / Math.max(1, total)) * 5)));
-  const ord = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" }[g];
-  return { txt: `As smart as a ${ord} grader`, emo: "🍎" };
+  if (total > 0 && correct >= total) return { txt: "Perfect score — genius!", emo: "🎓🏆" };
+  const g = Math.max(1, Math.min(MAX_GRADE, Math.ceil((correct / Math.max(1, total)) * MAX_GRADE)));
+  const ord = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th", 7: "7th", 8: "8th" }[g];
+  return { txt: `As smart as a ${ord} grader`, emo: g >= 7 ? "🧠" : "🍎" };
 }
 function renderReportCards() {
   const el = $("report-card"); if (!el) return;
@@ -468,7 +468,7 @@ $("feedback-modal").addEventListener("click", e => { if (e.target.id === "feedba
 document.querySelectorAll("#fb-stars span").forEach(s => s.addEventListener("click", () => { fbRating = Number(s.dataset.v); document.querySelectorAll("#fb-stars span").forEach(x => x.classList.toggle("on", Number(x.dataset.v) <= fbRating)); }));
 $("fb-send").addEventListener("click", async () => {
   const comment = $("fb-comment").value.trim(); if (!fbRating && !comment) return;
-  try { await push(ref(db, "feedback/" + (ROOM || "grader")), { game: "School Grader", name: (players[ME] && players[ME].name) || "", rating: fbRating || "", comment, gameDate: new Date((meta && meta.createdAt) || Date.now()).toISOString().slice(0, 10), ts: Date.now() }); } catch (e) {}
+  try { await push(ref(db, "feedback/" + (ROOM || "grader")), { game: "Top of the Class", name: (players[ME] && players[ME].name) || "", rating: fbRating || "", comment, gameDate: new Date((meta && meta.createdAt) || Date.now()).toISOString().slice(0, 10), ts: Date.now() }); } catch (e) {}
   $("fb-form").style.display = "none"; $("fb-thanks").style.display = "block"; fbRating = 0; $("fb-comment").value = ""; document.querySelectorAll("#fb-stars span").forEach(x => x.classList.remove("on"));
   setTimeout(closeFb, 1800);
 });
