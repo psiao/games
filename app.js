@@ -26,11 +26,37 @@ const GAMES = [
 
 let current = null; // mounted game module
 
+const GAME_THEME = `
+.game-shell,.wrap,.card,.modal{position:relative;z-index:1}
+.btn-primary{background:linear-gradient(180deg,color-mix(in srgb,var(--brand-accent) 90%,#fff),var(--brand-accent));box-shadow:0 8px 20px color-mix(in srgb,var(--brand-accent) 32%,transparent);border:none}
+.btn-primary:hover{transform:translateY(-1px);filter:brightness(1.04)}
+.card{background:rgba(255,255,255,.93);backdrop-filter:blur(8px);box-shadow:0 20px 46px rgba(20,40,80,.16);border:1px solid rgba(255,255,255,.6)}
+.choice{box-shadow:0 6px 16px rgba(20,40,80,.08)}
+.choice:hover:not(:disabled){border-color:var(--brand-accent);transform:translateY(-2px)}
+.choice.chosen{border-color:var(--brand-accent);background:color-mix(in srgb,var(--brand-accent) 8%,#fff)}
+.badge,.qprog .on{color:var(--brand-accent)}
+`;
+let _homeBtn, _gameBg, _theme;
+function setGameChrome(on, accent) {
+  if (!_homeBtn) { _homeBtn = document.createElement("button"); _homeBtn.id = "ls-home-btn"; _homeBtn.innerHTML = "\u2190 Games"; _homeBtn.title = "Back to Game Night"; _homeBtn.addEventListener("click", () => { location.hash = ""; }); document.body.appendChild(_homeBtn); }
+  if (!_gameBg) { _gameBg = document.createElement("div"); _gameBg.className = "game-bg"; _gameBg.innerHTML = '<span class="ga"></span><span class="gb"></span>'; document.body.appendChild(_gameBg); }
+  if (!_theme) { _theme = document.createElement("style"); _theme.id = "ls-game-theme"; _theme.textContent = GAME_THEME; }
+  if (on) {
+    document.documentElement.style.setProperty("--brand-accent", accent);
+    _homeBtn.style.display = "flex"; _gameBg.style.display = "block";
+    document.head.appendChild(_theme); // move to end so it beats the game's own styles.css
+  } else {
+    document.documentElement.style.removeProperty("--brand-accent");
+    _homeBtn.style.display = "none"; _gameBg.style.display = "none";
+    if (_theme && _theme.parentNode) _theme.remove();
+  }
+}
+
 async function route() {
   const id = (location.hash.replace(/^#\/?/, "").split("?")[0]) || "";
   if (current) { try { current.unmount(); } catch {} current = null; }
   document.querySelectorAll(".modal").forEach(m => m.remove());
-  if (!id) { renderHub(); return; }
+  if (!id) { setGameChrome(false); renderHub(); return; }
   const g = GAMES.find(x => x.id === id);
   if (!g) { location.hash = ""; return; }
   if (!g.migrated) { location.href = g.id + "/"; return; }
@@ -40,8 +66,9 @@ async function route() {
     const root = document.createElement("div"); app.innerHTML = ""; app.appendChild(root);
     mod.mount(root, { db, auth, Audio, goHome: () => { location.hash = ""; } });
     current = mod;
+    setGameChrome(true, g.accent);
   } catch (e) {
-    app.innerHTML = `<div class="wrap"><p class="hint">Couldn't load that game. <a href="#/">Back to games</a></p></div>`;
+    setGameChrome(false); app.innerHTML = `<div class="wrap"><p class="hint">Couldn't load that game. <a href="#/">Back to games</a></p></div>`;
   }
 }
 window.addEventListener("hashchange", route);
