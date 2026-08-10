@@ -53,8 +53,8 @@ const SCREENS = `
         </div>
         <div class="divider">or host a new game</div>
         <div class="row">
-          <div class="field" style="flex:1"><label for="opt-start">Start at grade</label>
-            <select id="opt-start"><option value="1">Grade 1 (easiest)</option><option value="2">Grade 2</option><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5" selected>Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8 (hardest)</option></select>
+          <div class="field" style="flex:1"><label for="opt-start">Start at grade (5–8)</label>
+            <select id="opt-start"><option value="5" selected>Grade 5 (start)</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8 (hardest)</option></select>
           </div>
           <div class="field" style="flex:1"><label for="opt-count">Questions</label>
             <select id="opt-count"><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
@@ -171,12 +171,12 @@ function getName() { const n = ($("name").value || "").trim(); if (!n) $("join-e
 // ---- content (host only) --------------------------------------------------
 async function loadContent() {
   if (contentLoaded) return true;
-  try { const m = await import("./grader-content.js?v=5"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
+  try { const m = await import("./grader-content.js?v=7"); QUESTIONS = m.QUESTIONS; SUBJECTS = m.SUBJECTS; GRADE_LABEL = m.GRADE_LABEL; contentLoaded = true; return true; }
   catch (e) { alert("Could not load the question bank."); return false; }
 }
 // ladder: qIndex -> which grade & subject (climbs grades, rotates subjects)
 function ladderAt(qIndex, startGrade, count) {
-  const sg = Math.min(MAX_GRADE, Math.max(1, startGrade || 1));
+  const sg = Math.min(MAX_GRADE, Math.max(5, startGrade || 5));
   const numGrades = MAX_GRADE - sg + 1;
   const grade = Math.min(MAX_GRADE, sg + Math.floor(qIndex * numGrades / Math.max(1, count || 10)));
   const subject = SUBJECTS[qIndex % SUBJECTS.length];
