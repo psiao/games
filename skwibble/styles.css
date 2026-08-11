@@ -128,6 +128,9 @@ canvas { width:100%; aspect-ratio:4/3; background:#fff; border:1px solid var(--l
 .brushlabel input { width:110px; }
 .spacer { flex:1; }
 .tools { display:flex; gap:6px; }
+/* Undo + Clear travel together so Clear never wraps onto a line of its own. */
+.tool-actions { display:flex; gap:6px; flex:none; margin-left:auto; }
+#btn-undo:disabled { opacity:.4; cursor:not-allowed; }
 .tool-btn { width:34px; height:34px; padding:0; font-size:16px; line-height:1; border-radius:9px;
   border:1px solid var(--line); background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .tool-btn:hover { border-color:var(--brand-accent); }
@@ -172,16 +175,21 @@ canvas { width:100%; aspect-ratio:4/3; background:#fff; border:1px solid var(--l
 .chatform input { flex:1; min-width:0; }
 .chatform button { padding:11px 15px; }
 
-/* ---- end ---- */
-.podium { list-style:none; padding:0; margin:18px 0; display:grid; gap:8px; }
-.podium li { display:flex; align-items:center; gap:12px; background:var(--brand-surface); border-radius:12px; padding:13px 15px; }
-.podium li .rank { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-weight:800; background:var(--line); }
-.podium li:nth-child(1) .rank { background:#fde68a; }
-.podium li:nth-child(2) .rank { background:#e5e7eb; }
-.podium li:nth-child(3) .rank { background:#fed7aa; }
-.podium li:nth-child(1) { outline:2px solid #fcd34d; }
-.podium li .nm { font-weight:700; }
-.podium li .pts { margin-left:auto; font-weight:800; color:var(--brand-accent); }
+/* ---- end ----
+   NOTE: this list was class="podium", which collided with the hub leaderboard's
+   `.podium { grid-template-columns:1fr 1fr 1fr }` in app.css. app.css loads first
+   but this file never reset grid-template-columns, so the results rows rendered as
+   3 columns and spilled out past the right edge of the card. Namespaced to
+   .sk-podium so the two can never clash again. Column count is now explicit. */
+.sk-podium { list-style:none; padding:0; margin:18px 0; display:grid; grid-template-columns:minmax(0,1fr); gap:8px; align-items:stretch; }
+.sk-podium li { display:flex; align-items:center; gap:12px; min-width:0; background:var(--brand-surface); border-radius:12px; padding:13px 15px; }
+.sk-podium li .rank { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-weight:800; background:var(--line); flex:none; }
+.sk-podium li:nth-child(1) .rank { background:#fde68a; }
+.sk-podium li:nth-child(2) .rank { background:#e5e7eb; }
+.sk-podium li:nth-child(3) .rank { background:#fed7aa; }
+.sk-podium li:nth-child(1) { outline:2px solid #fcd34d; outline-offset:-2px; }
+.sk-podium li .nm { font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sk-podium li .pts { margin-left:auto; padding-left:8px; font-weight:800; color:var(--brand-accent); font-variant-numeric:tabular-nums; flex:none; }
 
 /* ---- feedback modal ---- */
 .modal { position:fixed; inset:0; background:rgba(13,13,13,.5); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
