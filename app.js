@@ -63,7 +63,7 @@ async function route() {
   if (!g.migrated) { location.href = g.id + "/"; return; }
   app.innerHTML = `<div class="wrap"><p class="hint">Loading ${esc(g.name)}…</p></div>`;
   try {
-    const mod = await import(`./mod/${g.id}.js?v=4`);
+    const mod = await import(`./mod/${g.id}.js?v=5`);
     const root = document.createElement("div"); app.innerHTML = ""; app.appendChild(root);
     mod.mount(root, { db, auth, Audio, goHome: () => { location.hash = ""; } });
     current = mod;
