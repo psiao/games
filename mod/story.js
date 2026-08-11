@@ -128,7 +128,7 @@ export function mount(root, __shell) {
   let ME = null, NAME = "", EID = "";
   let canon = {}, live = null, cutting = {}, reports = {}, admins = {};
   let isAdmin = false, sparkIdx = 0, ticker = null, resolving = false;
-  let lastCanonCount = -1, listeners = [];
+  let lastCanonCount = -1, listeners = [], dbErr = false;
 
   const LSK = { name: "ls_story_name", eid: "ls_story_eid" };
   const gerr = (m) => { $("st-gate-err").textContent = m || ""; };
@@ -190,10 +190,28 @@ export function mount(root, __shell) {
   }
 
   // ---- live data ----------------------------------------------------------
+  // A denied/failed read used to fail silently and leave the screen blank —
+  // onValue cancels the listener and throws nothing. Always pass an error
+  // handler so the player is told what happened.
+  function dbError(err) {
+    if (dbErr) return;
+    dbErr = true;
+    const msg = (err && (err.message || err.code)) || "The server refused the connection.";
+    const feed = $("st-feed");
+    if (feed) feed.innerHTML = `<div class="st-empty"><div class="st-emptyico">⚠️</div>
+      <p><b>Can't reach the story right now.</b><br/>${esc(msg)}<br/>
+      Try a refresh — if it keeps happening, the database rules may not allow <code>story/</code> yet.</p></div>`;
+    const tip = $("st-tip"); if (tip) tip.innerHTML = "";
+    const post = $("st-post"); if (post) post.disabled = true;
+    const input = $("st-input");
+    if (input) { input.disabled = true; input.placeholder = "Offline — can't add a line right now."; }
+    const count = $("st-count"); if (count) count.textContent = "offline";
+  }
+
   function attach() {
     const bind = (path, cb) => {
       const r = ref(db, path);
-      const un = onValue(r, (snap) => { cb(snap.val() || {}); });
+      const un = onValue(r, (snap) => { cb(snap.val() || {}); }, dbError);
       listeners.push(un);
     };
     bind("story/canon",   (v) => { canon = v; renderFeed(); renderTip(); maybeCelebrate(); });
@@ -206,10 +224,12 @@ export function mount(root, __shell) {
     ticker = setInterval(() => { renderCountdown(); resolveIfDue(); }, 1000);
     _stop = () => { if (ticker) clearInterval(ticker); ticker = null; };
     renderSpark();
+    renderFeed(); renderTip();   // paint the empty state now, don't wait on the first snapshot
   }
 
   // ---- feed ---------------------------------------------------------------
   function renderFeed() {
+    if (dbErr) return;
     const feed = $("st-feed"); if (!feed) return;
     const list = canonList();
     const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
@@ -257,6 +277,7 @@ export function mount(root, __shell) {
 
   // ---- the tip ------------------------------------------------------------
   function renderTip() {
+    if (dbErr) return;
     const box = $("st-tip"); if (!box) return;
     const cands = candList();
     const mineUp = !!myCand();
@@ -346,9 +367,13 @@ export function mount(root, __shell) {
       if (!cur.lockAt) cur.lockAt = now + WINDOW_MS;
       cur.cands[id] = { text, name: NAME, eid: EID, uid: ME, ts: now, reacts: {} };
       return cur;
-    }).catch(() => ({ committed: false }));
+    }).catch((e) => ({ committed: false, _err: e }));
     $("st-post").disabled = false;
-    if (!res.committed) return cerr("Someone just beat you to it — take another look.");
+    if (!res.committed) {
+      return cerr(res._err
+        ? "Couldn't save that — " + ((res._err.message || res._err.code || "unknown error"))
+        : "Someone just beat you to it — take another look.");
+    }
     $("st-input").value = ""; $("st-left").textContent = MAX_LEN;
     sparkIdx++; renderSpark(); Sound.post();
   }
@@ -370,7 +395,7 @@ export function mount(root, __shell) {
         cur.cands[cid].reacts[EID] = em;
       }
       return cur;
-    }).catch(() => {});
+    }).catch((e) => cerr("Couldn't register that vote — " + (e.message || e.code || "unknown error")));
     Sound.tap();
   }
 
