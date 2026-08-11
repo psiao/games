@@ -25,7 +25,7 @@ const Music = Audio.music;
 import { signInAnonymously, onAuthStateChanged } from
   "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
-  ref, set, update, get, onValue, onChildAdded, push, remove,
+  ref, set, update, get, onValue, onChildAdded, onChildRemoved, push, remove,
   onDisconnect, runTransaction, serverTimestamp, off
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
@@ -150,7 +150,7 @@ const SCREENS = `
             <li>Each turn, one player draws the secret word — everyone else guesses in the chat.</li>
             <li>Type your guess in the chat. Correct guesses score points, and the faster you guess, the more you earn.</li>
             <li>The person drawing earns points for each correct guess.</li>
-            <li>Drawing tools: pick a color, set brush size, use the fill bucket, or clear the board.</li>
+            <li>Drawing tools: pick a color, set brush size, use the fill bucket, undo your last stroke (or Ctrl+Z), or clear the board.</li>
             <li>Observers can watch and chat but don't draw or score.</li>
           </ul>
         </div>
@@ -191,7 +191,10 @@ const SCREENS = `
             </span>
             <label class="brushlabel">Brush<input type="range" id="brush" min="2" max="28" value="6" /></label>
             <div class="spacer"></div>
-            <button id="btn-clear" class="btn-ghost mini">Clear</button>
+            <span class="tool-actions">
+              <button id="btn-undo" class="btn-ghost mini" type="button" title="Undo your last stroke (Ctrl+Z)" disabled>↩ Undo</button>
+              <button id="btn-clear" class="btn-ghost mini">Clear</button>
+            </span>
           </div>
         </div>
 
@@ -230,7 +233,7 @@ const SCREENS = `
         <div><h1>Final results</h1><p class="tagline">Skwibble</p></div>
       </div>
       <div class="card">
-        <ul class="podium" id="end-podium"></ul>
+        <ul class="sk-podium" id="end-podium"></ul>
         <select id="again-diff" title="Difficulty for the next game" style="width:100%;margin-bottom:8px">
           <option value="1">Level 1 · Easiest</option>
           <option value="2">Level 2 · Easy</option>
@@ -264,7 +267,7 @@ const SCREENS = `
 `;
 
 export function mount(root, __shell) {
-  if (!document.getElementById("skwibble-css")) { const _l = document.createElement("link"); _l.rel = "stylesheet"; _l.href = "skwibble/styles.css"; _l.id = "skwibble-css"; document.head.appendChild(_l); }
+  if (!document.getElementById("skwibble-css")) { const _l = document.createElement("link"); _l.rel = "stylesheet"; _l.href = "skwibble/styles.css?v=3"; _l.id = "skwibble-css"; document.head.appendChild(_l); }
   root.innerHTML = SCREENS;
 
 
@@ -277,7 +280,7 @@ let myGuessedKey = "";          // per-turn local guard so I only submit one cor
 // host scoring state
 let hostTurnKey = "", hostRank = 0, hostScored = new Set();
 
-let drawing = { active: false, color: "#111111", size: 6, last: null, tool: "pen" };
+let drawing = { active: false, color: "#111111", size: 6, last: null, tool: "pen", g: null };
 const PALETTE = ["#111111", "#ffffff", "#e11d48", "#ea580c", "#f59e0b",
   "#16a34a", "#0891b2", "#2563eb", "#7c3aed", "#db2777", "#78350f", "#9ca3af"];
 
@@ -382,6 +385,7 @@ function listen(path, event, cb) {
   const r = ref(db, path);
   if (event === "value") onValue(r, cb);
   else if (event === "child_added") onChildAdded(r, cb);
+  else if (event === "child_removed") onChildRemoved(r, cb);
   listeners.push({ r });
 }
 function attachRoomListeners(code) {
@@ -395,7 +399,9 @@ function attachRoomListeners(code) {
   listen(`rooms/${code}/players`, "value", (snap) => {
     players = snap.val() || {}; renderPlayers();
   });
-  listen(`rooms/${code}/strokes`, "child_added", (snap) => applyStroke(snap.val()));
+  listen(`rooms/${code}/strokes`, "child_added", (snap) => applyStroke(snap.val(), snap.key));
+  // Undo deletes the stroke's segments, so every client repaints without them.
+  listen(`rooms/${code}/strokes`, "child_removed", (snap) => removeStroke(snap.key));
   listen(`rooms/${code}/chat`, "child_added", (snap) => appendChat(snap.val()));
   // host-only scoring feed (harmless for non-hosts; they ignore it)
   listen(`rooms/${code}/correct`, "child_added", (snap) => hostScore(snap.key, snap.val()));
@@ -805,6 +811,7 @@ function setupToolbarVisibility() {
   const amDrawer = meta && meta.currentDrawer === ME && meta.state === "drawing" && myRole !== "observer";
   $("toolbar").classList.toggle("hidden", !amDrawer);
   updateCursor();
+  updateUndoState();
 }
 (function buildTools() {
   const box = $("swatches");
@@ -831,9 +838,82 @@ function setupToolbarVisibility() {
   $("tool-fill").addEventListener("click", () => setTool("fill"));
   $("btn-clear").addEventListener("click", async () => {
     if (meta.currentDrawer !== ME) return;
-    await push(ref(db, `rooms/${ROOM}/strokes`), { type: "clear" });
+    await push(ref(db, `rooms/${ROOM}/strokes`), { type: "clear", g: nextGroup() });
   });
+  $("btn-undo").addEventListener("click", undoLast);
 })();
+
+// ---------------------------------------------------------------------------
+// UNDO
+// ---------------------------------------------------------------------------
+// A pen stroke is many `line` segments (one per pointer move), so undo works on
+// GROUPS: every segment of one press-drag-release carries the same `g`. A fill or
+// a clear is its own group, so undo steps back over those too (undoing a clear
+// brings the drawing back, because clear is a marker rather than a deletion).
+//
+// `strokeLog` mirrors rooms/<code>/strokes in server order on EVERY client, which
+// is what makes undo shared: the drawer deletes that group's keys, Firebase fires
+// child_removed everywhere, and each client repaints from its log. Repainting is
+// safe because floodFill is deterministic given the same strokes in the same order.
+let strokeLog = [];          // [{ key, val }] — server order
+let groupSeq = 0, undoBusy = false, repaintQueued = false;
+// Salted per page load: a drawer who refreshes mid-turn restarts the counter, and
+// without the salt their next stroke would reuse a group id already in the room —
+// one undo would then delete two strokes.
+const GID_SALT = Math.random().toString(36).slice(2, 6);
+const nextGroup = () => GID_SALT + (++groupSeq).toString(36);
+
+// Clears the mirror at a turn change. groupSeq deliberately keeps counting: the
+// first segment of a stroke arrives back AFTER its group id was minted, so zeroing
+// the counter here would hand the next stroke the same id and undo would then wipe
+// both strokes at once.
+function resetStrokeLog() { strokeLog = []; updateUndoState(); }
+
+function repaint() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const e of strokeLog) paintStroke(e.val);
+}
+function queueRepaint() {
+  if (repaintQueued) return;              // one repaint per frame, not per deleted key
+  repaintQueued = true;
+  requestAnimationFrame(() => { repaintQueued = false; repaint(); updateUndoState(); });
+}
+function removeStroke(key) {
+  const n = strokeLog.length;
+  strokeLog = strokeLog.filter((e) => e.key !== key);
+  if (strokeLog.length !== n) queueRepaint();
+}
+function updateUndoState() {
+  const b = $("btn-undo"); if (!b) return;
+  b.disabled = undoBusy || !canDraw() || strokeLog.length === 0;
+}
+async function undoLast() {
+  if (!canDraw() || undoBusy || !strokeLog.length) return;
+  const last = strokeLog[strokeLog.length - 1];
+  const g = last.val && last.val.g;
+  const kill = {};
+  // No group id => a stroke from an older client build; drop that one segment.
+  if (g == null) kill[last.key] = null;
+  else for (const e of strokeLog) if (e.val && e.val.g === g) kill[e.key] = null;
+  undoBusy = true; updateUndoState();
+  try {
+    await update(ref(db, `rooms/${ROOM}/strokes`), kill);
+    Sound.mine();
+  } catch (err) {
+    console.warn("[skwibble] undo failed", err);
+  } finally {
+    undoBusy = false; updateUndoState();
+  }
+}
+function onUndoKey(e) {
+  if ((e.key !== "z" && e.key !== "Z") || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  if (!canDraw()) return;
+  e.preventDefault();
+  undoLast();
+}
+document.addEventListener("keydown", onUndoKey);
 function canDraw() { return meta && meta.currentDrawer === ME && meta.state === "drawing" && myRole !== "observer"; }
 function pos(e) {
   const r = canvas.getBoundingClientRect();
@@ -845,20 +925,21 @@ function startDraw(e) {
   if (!canDraw()) return; e.preventDefault();
   if (drawing.tool === "fill") {
     const p = pos(e);
-    push(ref(db, `rooms/${ROOM}/strokes`), { type: "fill", x: p.x, y: p.y, color: drawing.color });
+    push(ref(db, `rooms/${ROOM}/strokes`), { type: "fill", x: p.x, y: p.y, color: drawing.color, g: nextGroup() });
     return;
   }
-  drawing.active = true; drawing.last = pos(e);
+  drawing.active = true; drawing.last = pos(e); drawing.g = nextGroup();
 }
 function moveDraw(e) {
   if (!drawing.active || !canDraw()) return; e.preventDefault();
   const p = pos(e);
   push(ref(db, `rooms/${ROOM}/strokes`), {
     type: "line", x0: drawing.last.x, y0: drawing.last.y, x1: p.x, y1: p.y, color: drawing.color, size: drawing.size,
+    g: drawing.g,
   });
   drawing.last = p;
 }
-function endDraw() { drawing.active = false; drawing.last = null; }
+function endDraw() { drawing.active = false; drawing.last = null; drawing.g = null; }
 canvas.addEventListener("mousedown", startDraw);
 canvas.addEventListener("mousemove", moveDraw);
 window.addEventListener("mouseup", endDraw);
@@ -867,10 +948,20 @@ canvas.addEventListener("touchmove", moveDraw, { passive: false });
 canvas.addEventListener("touchend", endDraw);
 
 let lastDrawerKey = "";
-function applyStroke(s) {
+function applyStroke(s, key) {
   if (!s) return;
-  const key = `${meta?.round}:${meta?.currentDrawer}`;
-  if (key !== lastDrawerKey) { ctx.clearRect(0, 0, canvas.width, canvas.height); lastDrawerKey = key; }
+  const turnKey = `${meta?.round}:${meta?.currentDrawer}`;
+  if (turnKey !== lastDrawerKey) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); lastDrawerKey = turnKey; resetStrokeLog();
+  }
+  strokeLog.push({ key, val: s });
+  paintStroke(s);
+  updateUndoState();
+}
+// Draws one stroke at the current canvas state. Kept separate from applyStroke so
+// repaint() can replay the whole log without re-running the turn-change reset.
+function paintStroke(s) {
+  if (!s) return;
   if (s.type === "clear") { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
   if (s.type === "fill") { floodFill(s.x * canvas.width, s.y * canvas.height, s.color); return; }
   if (s.type !== "line") return;
@@ -921,12 +1012,12 @@ function floodFill(px, py, hex) {
 // TIMER + urgency ticks (all clients)
 // ---------------------------------------------------------------------------
 let watchKey = "", lastTickSec = -1;
-setInterval(() => {
+const uiTimer = setInterval(() => {
   if (!meta) return;
   const turnKey = `${meta.round}:${meta.currentDrawer}:${meta.state}`;
   if (turnKey !== watchKey) {
     watchKey = turnKey; lastTickSec = -1;
-    if (meta.state === "drawing") { ctx.clearRect(0, 0, canvas.width, canvas.height); lastDrawerKey = ""; }
+    if (meta.state === "drawing") { ctx.clearRect(0, 0, canvas.width, canvas.height); lastDrawerKey = ""; resetStrokeLog(); }
   }
   const timerEl = $("game-timer");
   if (!timerEl) return;
@@ -994,8 +1085,12 @@ if ($("fb-send")) $("fb-send").addEventListener("click", async () => {
 });
 
 
-  _detach = (typeof detach === "function") ? detach : () => {};
-  _stop = (typeof stopHostTimer === "function") ? stopHostTimer : () => {};
+  // Real cleanup on unmount: detachAll() drops the Firebase listeners and the host
+  // clock, and the 200ms UI timer + the global Ctrl+Z handler go with them.
+  // (These used to look for `detach`/`stopHostTimer`, which don't exist, so both
+  // were silently no-ops and everything kept running after leaving the game.)
+  _detach = () => { detachAll(); document.removeEventListener("keydown", onUndoKey); };
+  _stop = () => { clearInterval(uiTimer); };
 }
 
 export function unmount() {
