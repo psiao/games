@@ -128,7 +128,7 @@ export function mount(root, __shell) {
   let ME = null, NAME = "", EID = "";
   let canon = {}, live = null, cutting = {}, reports = {}, admins = {};
   let isAdmin = false, sparkIdx = 0, ticker = null, resolving = false;
-  let lastCanonCount = -1, listeners = [], dbErr = false;
+  let lastCanonCount = -1, listeners = [], dbErr = false, attached = false;
 
   const LSK = { name: "ls_story_name", eid: "ls_story_eid" };
   const gerr = (m) => { $("st-gate-err").textContent = m || ""; };
@@ -209,6 +209,8 @@ export function mount(root, __shell) {
   }
 
   function attach() {
+    if (attached) return;   // a second tap on "start reading" must not double-subscribe
+    attached = true;
     const bind = (path, cb) => {
       const r = ref(db, path);
       const un = onValue(r, (snap) => { cb(snap.val() || {}); }, dbError);
@@ -222,7 +224,7 @@ export function mount(root, __shell) {
 
     _detach = () => { listeners.forEach(un => { try { un(); } catch {} }); listeners = []; };
     ticker = setInterval(() => { renderCountdown(); resolveIfDue(); }, 1000);
-    _stop = () => { if (ticker) clearInterval(ticker); ticker = null; };
+    _stop = () => { if (ticker) clearInterval(ticker); ticker = null; attached = false; };
     renderSpark();
     renderFeed(); renderTip();   // paint the empty state now, don't wait on the first snapshot
   }
