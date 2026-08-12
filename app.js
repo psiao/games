@@ -26,6 +26,7 @@ const GAMES = [
 ];
 
 let current = null; // mounted game module
+let routeSeq = 0;   // guards against a slow dynamic import mounting after the user moved on
 
 const GAME_THEME = `
 .game-shell,.wrap,.card,.modal{position:relative;z-index:1}
@@ -54,6 +55,7 @@ function setGameChrome(on, accent) {
 }
 
 async function route() {
+  const my = ++routeSeq;
   const id = (location.hash.replace(/^#\/?/, "").split("?")[0]) || "";
   if (current) { try { current.unmount(); } catch {} current = null; }
   document.querySelectorAll(".modal").forEach(m => m.remove());
@@ -63,12 +65,14 @@ async function route() {
   if (!g.migrated) { location.href = g.id + "/"; return; }
   app.innerHTML = `<div class="wrap"><p class="hint">Loading ${esc(g.name)}…</p></div>`;
   try {
-    const mod = await import(`./mod/${g.id}.js?v=6`);
+    const mod = await import(`./mod/${g.id}.js?v=7`);
+    if (my !== routeSeq) return;   // a newer navigation already won — don't mount over it
     const root = document.createElement("div"); app.innerHTML = ""; app.appendChild(root);
     mod.mount(root, { db, auth, Audio, goHome: () => { location.hash = ""; } });
     current = mod;
     setGameChrome(true, g.accent);
   } catch (e) {
+    if (my !== routeSeq) return;
     setGameChrome(false); app.innerHTML = `<div class="wrap"><p class="hint">Couldn't load that game. <a href="#/">Back to games</a></p></div>`;
   }
 }
